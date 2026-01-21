@@ -20,7 +20,7 @@ function decodeJwt(token: string) {
 }
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get("zephira-token")?.value;
+  const token = request.cookies.get("zephira_token_admin")?.value;
   const { pathname } = request.nextUrl;
 
   const publicRoutes = ["/login"];
