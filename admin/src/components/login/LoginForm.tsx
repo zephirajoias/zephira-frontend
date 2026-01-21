@@ -5,6 +5,7 @@ import api from "@/lib/api";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import nookies from "nookies";
 import { useState } from "react";
 
 export default function LoginForm() {
@@ -32,6 +33,7 @@ export default function LoginForm() {
           maxAge: 60 * 60 * 24,
         };
 
+        nookies.set(null, "zephira_token_admin", access_token, cookiesOptions);
         localStorage.setItem("zephira_token_admin", access_token);
         router.push("/");
       }
