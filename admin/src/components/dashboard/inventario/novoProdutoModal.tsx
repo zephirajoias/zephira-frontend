@@ -11,6 +11,7 @@ interface NewProductModalProps {
 interface CategoriaTodos {
   CD_CATEGORIA: number;
   NM_CATEGORIA: string;
+  NM_CATEGORIA_DISPLAY: string;
 }
 
 interface VariacaoItem {
@@ -140,7 +141,7 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
         nome
           .toLowerCase()
           .replace(/ /g, "-")
-          .replace(/[^\w-]+/g, "")
+          .replace(/[^\w-]+/g, ""),
       );
       formData.append("CD_CATEGORIA", categoriaId);
       formData.append("DS_DESCRICAO", descricao);
@@ -244,7 +245,7 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
                             key={cat.CD_CATEGORIA}
                             value={cat.CD_CATEGORIA}
                           >
-                            {cat.NM_CATEGORIA}
+                            {cat.NM_CATEGORIA_DISPLAY}
                           </option>
                         ))}
                       </select>
