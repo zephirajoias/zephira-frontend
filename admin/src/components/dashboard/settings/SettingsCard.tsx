@@ -1,4 +1,6 @@
-import Link from "next/link"; // Importar Link
+// components/dashboard/settings/SettingsCard.tsx
+import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface SettingsCardProps {
   title: string;
@@ -6,12 +8,10 @@ interface SettingsCardProps {
   icon: string;
   iconBg: string;
   iconColor: string;
-  badgeText?: string;
-  badgeColor?: string;
   primaryAction: string;
-  primaryHref?: string; // Nova prop para o link
+  primaryHref: string;
+  badgeText?: string;
   secondaryAction?: string;
-  secondaryIcon?: string;
 }
 
 export function SettingsCard({
@@ -20,68 +20,50 @@ export function SettingsCard({
   icon,
   iconBg,
   iconColor,
-  badgeText,
-  badgeColor,
   primaryAction,
-  primaryHref, // Recebe o link
-  secondaryAction,
-  secondaryIcon,
+  primaryHref,
+  badgeText,
 }: SettingsCardProps) {
-  // Função para renderizar o botão principal (Link ou Button)
-  const renderPrimaryButton = () => {
-    const className =
-      "flex-1 py-2 px-3 rounded-lg bg-[var(--zephira-primary)]/10 text-[var(--zephira-primary)] text-sm font-bold hover:bg-[var(--zephira-primary)] hover:text-white transition-colors text-center";
-
-    if (primaryHref) {
-      return (
-        <Link href={primaryHref} className={className}>
-          {primaryAction}
-        </Link>
-      );
-    }
-
-    return <button className={className}>{primaryAction}</button>;
-  };
-
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-gray-200 dark:border-white/5 bg-white dark:bg-[#102220] p-6 hover:shadow-lg hover:border-[var(--zephira-primary)]/50 transition-all group cursor-pointer h-full">
-      <div className="flex items-start justify-between">
-        <div
-          className={`p-3 rounded-lg ${iconBg} ${iconColor} group-hover:bg-[var(--zephira-primary)] group-hover:text-white transition-colors`}
-        >
-          <span className="material-symbols-outlined text-[28px]">{icon}</span>
-        </div>
-        {badgeText && (
-          <span
-            className={`px-2 py-1 rounded-full text-xs font-bold border ${badgeColor}`}
+    <div className="group bg-white dark:bg-[#102220] p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between min-h-[220px]">
+      <div>
+        <div className="flex justify-between items-start mb-4">
+          <div
+            className={cn(
+              "size-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 duration-300",
+              iconBg,
+            )}
           >
-            {badgeText}
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-2 flex-1">
-        <h3 className="text-lg font-bold text-[var(--zephira-text)] dark:text-white group-hover:text-[var(--zephira-primary)] transition-colors">
+            <span
+              className={cn("material-symbols-outlined text-2xl", iconColor)}
+            >
+              {icon}
+            </span>
+          </div>
+          {badgeText && (
+            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+              {badgeText}
+            </span>
+          )}
+        </div>
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
           {title}
         </h3>
-        <p className="text-[var(--zephira-muted)] text-sm leading-relaxed">
+        <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
           {description}
         </p>
       </div>
 
-      <div className="pt-4 mt-2 border-t border-gray-100 dark:border-white/5 flex gap-2">
-        {renderPrimaryButton()}
-
-        {secondaryAction && (
-          <button
-            className="size-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-white/10 text-[var(--zephira-muted)] hover:text-[var(--zephira-primary)] hover:border-[var(--zephira-primary)] transition-colors"
-            title={secondaryAction}
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              {secondaryIcon || "add"}
-            </span>
-          </button>
-        )}
+      <div className="mt-6 pt-4 border-t border-slate-50 dark:border-white/5">
+        <Link
+          href={primaryHref}
+          className="flex items-center gap-2 text-sm font-black text-[#11d4c4] hover:gap-3 transition-all"
+        >
+          {primaryAction}
+          <span className="material-symbols-outlined text-base">
+            arrow_forward
+          </span>
+        </Link>
       </div>
     </div>
   );

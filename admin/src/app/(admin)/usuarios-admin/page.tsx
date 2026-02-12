@@ -1,242 +1,288 @@
 "use client";
 
+import { StatCard } from "@/components/dashboard/StatCard";
+import api from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { useEffect, useMemo, useState } from "react";
+
+// Modais
 import { DeleteUserModal } from "@/components/dashboard/users/deleteUserModal";
 import { UserFormModal } from "@/components/dashboard/users/userFormModal";
-import api from "@/lib/api";
-import { useEffect, useState } from "react";
 
-interface usersAdmin {
+interface UserAdmin {
   CD_USUARIO: number;
   NM_USUARIO: string;
   DS_EMAIL: string;
   TP_PERFIL: string;
 }
 
+// Configuração de Estilo por Função
+const ROLE_CONFIG: Record<string, { bg: string; text: string; icon: string }> =
+  {
+    "Super Admin": {
+      bg: "bg-purple-100 dark:bg-purple-900/30",
+      text: "text-purple-700 dark:text-purple-400",
+      icon: "verified_user",
+    },
+    "Gerente de Estoque": {
+      bg: "bg-blue-100 dark:bg-blue-900/30",
+      text: "text-blue-700 dark:text-blue-400",
+      icon: "inventory_2",
+    },
+    Editor: {
+      bg: "bg-amber-100 dark:bg-amber-900/30",
+      text: "text-amber-700 dark:text-amber-400",
+      icon: "edit_note",
+    },
+    default: {
+      bg: "bg-slate-100 dark:bg-slate-800",
+      text: "text-slate-600 dark:text-slate-400",
+      icon: "person",
+    },
+  };
+
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [userAdmin, setUserAdmin] = useState<usersAdmin[]>([]);
+  const [roleFilter, setRoleFilter] = useState("Todas");
+  const [users, setUsers] = useState<UserAdmin[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Estados para os Modais
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<usersAdmin | null>(null); // Se null, é criação
-  const [deletingUser, setDeletingUser] = useState<usersAdmin | null>(null);
+  // Estados dos Modais
+  const [modals, setModals] = useState({
+    form: false,
+    editUser: null as UserAdmin | null,
+    deleteUser: null as UserAdmin | null,
+  });
 
-  const handleDados = async () => {
+  const fetchUsers = async () => {
+    setIsLoading(true);
     try {
       const response = await api.get("/admin/listaAdmin");
-      setUserAdmin(response.data);
+      setUsers(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
-      console.log(error);
+      console.error("Erro ao carregar admins:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    handleDados();
+    fetchUsers();
   }, []);
 
-  // Handlers
-  const handleOpenNew = () => {
-    setEditingUser(null); // Garante que não tem usuário selecionado
-    setIsFormOpen(true);
-  };
+  // Filtro inteligente
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const matchesSearch =
+        user.NM_USUARIO.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.DS_EMAIL.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole =
+        roleFilter === "Todas" || user.TP_PERFIL === roleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [users, searchTerm, roleFilter]);
 
-  const handleOpenEdit = (user: usersAdmin) => {
-    setEditingUser(user);
-    setIsFormOpen(true);
-  };
-
-  const handleOpenDelete = (user: usersAdmin) => {
-    setDeletingUser(user);
-  };
-
-  // Helper de Cores para Perfil
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case "Super Admin":
-        return "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800";
-      case "Gerente de Estoque":
-        return "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800";
-      case "Editor":
-        return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
-    }
-  };
+  // Estatísticas para os Cards
+  const stats = useMemo(
+    () => ({
+      total: users.length,
+      superAdmins: users.filter((u) => u.TP_PERFIL === "Super Admin").length,
+      gerentes: users.filter((u) => u.TP_PERFIL === "Gerente de Estoque")
+        .length,
+    }),
+    [users],
+  );
 
   return (
-    <div className="max-w-[1200px] mx-auto flex flex-col gap-6 pb-10">
-      {/* --- MODAIS --- */}
+    <div className="max-w-[1400px] mx-auto flex flex-col gap-8 pb-10 animate-in fade-in duration-500">
+      {/* Modais */}
       <UserFormModal
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        user={editingUser}
-        onSuccess={handleDados}
+        isOpen={modals.form || !!modals.editUser}
+        onClose={() => setModals({ ...modals, form: false, editUser: null })}
+        user={modals.editUser}
+        onSuccess={fetchUsers}
       />
-
       <DeleteUserModal
-        isOpen={!!deletingUser}
-        onClose={() => setDeletingUser(null)}
-        user={deletingUser}
-        onSuccess={handleDados}
+        isOpen={!!modals.deleteUser}
+        onClose={() => setModals({ ...modals, deleteUser: null })}
+        user={modals.deleteUser}
+        onSuccess={fetchUsers}
       />
 
-      {/* 1. Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-3xl font-black tracking-tight text-[var(--zephira-text)] dark:text-white">
-            Usuários Admin
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+            Equipe
           </h2>
-          <p className="text-[var(--zephira-muted)] text-base">
-            Gerencie permissões de acesso e membros da equipe.
+          <p className="text-slate-500 font-medium text-lg">
+            Gerencie acessos e permissões administrativas.
           </p>
         </div>
         <button
-          onClick={handleOpenNew}
-          className="flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-[var(--zephira-primary)] hover:brightness-105 text-[#102220] font-bold shadow-lg shadow-[var(--zephira-primary)]/20 transition-all active:scale-95"
+          onClick={() => setModals({ ...modals, form: true })}
+          className="flex items-center justify-center gap-2 h-12 px-6 rounded-2xl bg-[#11d4c4] text-[#0a1615] font-black shadow-lg shadow-[#11d4c4]/20 hover:scale-[1.02] transition-all active:scale-95"
         >
-          <span className="material-symbols-outlined">add</span>
-          <span>Novo Admin</span>
+          <span className="material-symbols-outlined">person_add</span>
+          Novo Administrador
         </button>
+      </header>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <StatCard
+          title="Total de Membros"
+          value={stats.total}
+          icon="group"
+          trend="Equipe Ativa"
+          trendLabel=""
+        />
+        <StatCard
+          title="Super Admins"
+          value={stats.superAdmins}
+          icon="verified_user"
+          trend="Acesso Total"
+          trendLabel=""
+        />
+        <StatCard
+          title="Gerentes"
+          value={stats.gerentes}
+          icon="manage_accounts"
+          trend="Operacional"
+          trendLabel=""
+        />
       </div>
 
-      {/* 2. Filters */}
-      <div className="bg-white dark:bg-[var(--zephira-dark)] p-4 rounded-xl border border-gray-200 dark:border-white/5 shadow-sm">
-        <div className="flex flex-col md:flex-row gap-4 items-end">
-          {/* Search */}
-          <div className="w-full md:flex-1">
-            <label className="block text-xs font-bold text-[var(--zephira-text)] dark:text-white uppercase tracking-wider mb-1.5 ml-1">
-              Buscar Usuários
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Buscar por nome ou email..."
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-[#0b1816] border-transparent focus:bg-white dark:focus:bg-black focus:border-[var(--zephira-primary)] focus:ring-0 rounded-lg text-sm transition-all text-[var(--zephira-text)] dark:text-white placeholder-gray-400"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <span className="material-symbols-outlined absolute left-3 top-2.5 text-[var(--zephira-muted)] text-[20px]">
-                search
-              </span>
-            </div>
-          </div>
-
-          {/* Role Filter (Visual Only - implemente a lógica se necessário) */}
-          <div className="w-full md:w-64">
-            <label className="block text-xs font-bold text-[var(--zephira-text)] dark:text-white uppercase tracking-wider mb-1.5 ml-1">
-              Filtrar por Função
-            </label>
-            <div className="relative">
-              <select className="w-full pl-10 pr-8 py-2.5 bg-gray-50 dark:bg-[#0b1816] border-transparent focus:bg-white dark:focus:bg-black focus:border-[var(--zephira-primary)] focus:ring-0 rounded-lg text-sm text-[var(--zephira-text)] dark:text-white appearance-none cursor-pointer transition-all">
-                <option value="">Todas as Funções</option>
-                <option value="Super Admin">Super Admin</option>
-                <option value="Gerente de Estoque">Gerente</option>
-              </select>
-              <span className="material-symbols-outlined absolute left-3 top-2.5 text-[var(--zephira-muted)] text-[20px]">
-                filter_list
-              </span>
-              <span className="material-symbols-outlined absolute right-3 top-2.5 text-[var(--zephira-muted)] text-[20px] pointer-events-none">
-                expand_more
-              </span>
-            </div>
-          </div>
+      {/* Filtros */}
+      <section className="flex flex-col lg:flex-row gap-4 p-4 bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm">
+        <div className="relative flex-1">
+          <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+            search
+          </span>
+          <input
+            className="w-full h-12 pl-12 pr-4 rounded-2xl bg-slate-50 dark:bg-white/5 border-none focus:ring-2 focus:ring-[#11d4c4]/20 outline-none text-sm font-medium transition-all"
+            placeholder="Pesquisar por nome ou email do administrador..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
-      </div>
+        <select
+          className="h-12 px-4 rounded-2xl bg-slate-50 dark:bg-white/5 border-none text-sm font-bold focus:ring-2 focus:ring-[#11d4c4]/20 outline-none cursor-pointer"
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+        >
+          <option value="Todas">Todas as Funções</option>
+          <option value="Super Admin">Super Admin</option>
+          <option value="Gerente de Estoque">Gerente de Estoque</option>
+          <option value="Editor">Editor</option>
+        </select>
+      </section>
 
-      {/* 3. Table */}
-      <div className="bg-white dark:bg-[var(--zephira-dark)] rounded-xl shadow-sm border border-gray-200 dark:border-white/5 overflow-hidden">
+      {/* Tabela */}
+      <div className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full whitespace-nowrap text-left">
-            <thead className="bg-gray-50 dark:bg-[#0b1816] border-b border-gray-200 dark:border-white/5">
-              <tr>
-                <th className="px-6 py-4 text-xs font-bold text-[var(--zephira-muted)] uppercase tracking-wider">
-                  Usuário
-                </th>
-                <th className="px-6 py-4 text-xs font-bold text-[var(--zephira-muted)] uppercase tracking-wider">
-                  Função
-                </th>
-                <th className="px-6 py-4 text-xs font-bold text-[var(--zephira-muted)] uppercase tracking-wider text-right">
-                  Ações
-                </th>
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 dark:bg-white/2 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-white/5">
+                <th className="p-5 pl-8">Usuário</th>
+                <th className="p-5">Função</th>
+                <th className="p-5 text-right pr-8">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-              {userAdmin
-                .filter(
-                  (user) =>
-                    user.NM_USUARIO.toLowerCase().includes(
-                      searchTerm.toLowerCase(),
-                    ) ||
-                    user.DS_EMAIL.toLowerCase().includes(
-                      searchTerm.toLowerCase(),
-                    ),
-                )
-                .map((user) => (
-                  <tr
-                    key={user.CD_USUARIO}
-                    className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group"
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="p-20 text-center animate-pulse text-slate-400 font-bold"
                   >
-                    {/* User Info */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-4">
-                        <div className="size-10 rounded-full bg-[var(--zephira-primary)]/10 text-[var(--zephira-primary)] flex items-center justify-center font-bold text-sm">
-                          {user.NM_USUARIO.substring(0, 2).toUpperCase()}
+                    Sincronizando equipe...
+                  </td>
+                </tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="p-20 text-center text-slate-400">
+                    Nenhum administrador encontrado.
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((user) => {
+                  const config =
+                    ROLE_CONFIG[user.TP_PERFIL] || ROLE_CONFIG.default;
+                  return (
+                    <tr
+                      key={user.CD_USUARIO}
+                      className="group hover:bg-slate-50 dark:hover:bg-white/5 transition-all"
+                    >
+                      <td className="p-5 pl-8">
+                        <div className="flex items-center gap-4">
+                          {/* Avatar com Gradiente */}
+                          <div className="size-11 rounded-full bg-gradient-to-tr from-[#11d4c4] to-teal-600 text-white flex items-center justify-center font-black text-sm shadow-md shadow-[#11d4c4]/20 border-2 border-white dark:border-slate-800">
+                            {user.NM_USUARIO.substring(0, 2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-black text-slate-900 dark:text-white leading-tight">
+                              {user.NM_USUARIO}
+                            </p>
+                            <p className="text-xs text-slate-500 font-medium">
+                              {user.DS_EMAIL}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-[var(--zephira-text)] dark:text-white">
-                            {user.NM_USUARIO}
-                          </p>
-                          <p className="text-xs text-[var(--zephira-muted)]">
-                            {user.DS_EMAIL}
-                          </p>
+                      </td>
+                      <td className="p-5">
+                        <div
+                          className={cn(
+                            "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider",
+                            config.bg,
+                            config.text,
+                          )}
+                        >
+                          <span className="material-symbols-outlined text-base">
+                            {config.icon}
+                          </span>
+                          {user.TP_PERFIL}
                         </div>
-                      </div>
-                    </td>
-
-                    {/* Role */}
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border ${getRoleBadge(user.TP_PERFIL)}`}
-                      >
-                        {user.TP_PERFIL}
-                      </span>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => handleOpenEdit(user)}
-                          className="p-2 text-[var(--zephira-muted)] hover:text-[var(--zephira-primary)] hover:bg-[var(--zephira-primary)]/10 rounded-lg transition-colors"
-                          title="Editar"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">
-                            edit
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => handleOpenDelete(user)}
-                          className="p-2 text-[var(--zephira-muted)] hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="Excluir"
-                        >
-                          <span className="material-symbols-outlined text-[20px]">
-                            delete
-                          </span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="p-5 pr-8 text-right">
+                        <div className="flex justify-end gap-2 lg:opacity-0 lg:group-hover:opacity-100 transition-all duration-300">
+                          <button
+                            onClick={() =>
+                              setModals({ ...modals, editUser: user })
+                            }
+                            className="p-2 hover:bg-[#11d4c4]/10 text-[#11d4c4] rounded-xl transition-all"
+                            title="Editar permissões"
+                          >
+                            <span className="material-symbols-outlined">
+                              edit_square
+                            </span>
+                          </button>
+                          <button
+                            onClick={() =>
+                              setModals({ ...modals, deleteUser: user })
+                            }
+                            className="p-2 hover:bg-red-500/10 text-red-500 rounded-xl transition-all"
+                            title="Remover acesso"
+                          >
+                            <span className="material-symbols-outlined">
+                              person_remove
+                            </span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Simple Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-white/5 bg-white dark:bg-[#102220] flex items-center justify-between">
-          <p className="text-xs text-[var(--zephira-muted)]">
-            Total: {userAdmin.length}
+        <footer className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/20">
+          <p className="text-xs font-bold text-slate-400 tracking-wide uppercase">
+            Total de {filteredUsers.length} administradores listados
           </p>
-        </div>
+        </footer>
       </div>
     </div>
   );

@@ -1,10 +1,12 @@
 "use client";
 
 import api from "@/lib/api";
-import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 
-interface configuracoes {
+// --- Interfaces ---
+interface ConfigData {
   NM_LOJA: string;
   DS_EMAIL_SUPORTE: string;
   NR_TELEFONE: string;
@@ -15,163 +17,181 @@ interface configuracoes {
 }
 
 export default function SettingsGeralPage() {
-  // States para os campos
-  const [config, setConfig] = useState<configuracoes[]>([]);
-  const [storeName, setStoreName] = useState("Lumiere Fine Jewelry");
-  const [supportEmail, setSupportEmail] = useState("concierge@lumiere.com");
-  const [contactPhone, setContactPhone] = useState("+1 (555) 000-1234");
-  const [currency, setCurrency] = useState("USD");
-  const [timezone, setTimezone] = useState("UTC-5");
+  const [formData, setFormData] = useState<ConfigData>({
+    NM_LOJA: "",
+    DS_EMAIL_SUPORTE: "",
+    NR_TELEFONE: "",
+    SG_MOEDA: "BRL",
+    DS_FUSO_HORARIO: "UTC-3",
+    DS_LOGO: "",
+    DS_FAVICON: "",
+  });
 
-  const handleConfig = async () => {
+  const [initialData, setInitialData] = useState<ConfigData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Busca as configurações
+  const fetchConfig = async () => {
+    setIsLoading(true);
     try {
-      const response = await api.get("/admin/configuracoes/gerais");
+      const { data } = await api.get("/admin/configuracoes/gerais");
+      // Se a API retornar um array, pegamos o primeiro. Se objeto, direto.
+      const config = Array.isArray(data) ? data[0] : data;
 
-      const data = response.data;
-      setConfig(data);
+      const normalized = {
+        NM_LOJA: config?.NM_LOJA || "",
+        DS_EMAIL_SUPORTE: config?.DS_EMAIL_SUPORTE || "",
+        NR_TELEFONE: config?.NR_TELEFONE || "",
+        SG_MOEDA: config?.SG_MOEDA || "BRL",
+        DS_FUSO_HORARIO: config?.DS_FUSO_HORARIO || "UTC-3",
+        DS_LOGO: config?.DS_LOGO || "",
+        DS_FAVICON: config?.DS_FAVICON || "",
+      };
 
-      setStoreName(data.NM_LOJA ?? "");
-      setSupportEmail(data.DS_EMAIL_SUPORTE ?? "");
-      setContactPhone(data.NR_TELEFONE ?? "");
-      setCurrency(data.SG_MOEDA ?? "BRL");
-      setTimezone(data.DS_FUSO_HORARIO ?? "UTC-3");
+      setFormData(normalized);
+      setInitialData(normalized);
     } catch (error) {
-      console.error("Erro ao buscar configurações", error);
-      toast.error("Erro ao carregar configurações");
+      toast.error("Erro ao carregar dados do servidor.");
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleSave = async () => {
-    try {
-      const response = await api.put("/admin/configuracoes/gerais", {
-        NM_LOJA: storeName,
-        DS_EMAIL_SUPORTE: supportEmail,
-        NR_TELEFONE: contactPhone,
-        SG_MOEDA: currency,
-        DS_FUSO_HORARIO: timezone,
-      });
-      console.log(response.data);
-      if (response.status === 200) {
-        toast.success("Configurações salvas com sucesso!");
-      } else {
-        toast.error("Erro ao salvar as configurações.");
-      }
-    } catch (error) {
-      console.error("Erro ao salvar as configurações", error);
-    }
-  };
-
-  const handleDiscard = () => {
-    // Lógica para resetar ou voltar
-    toast.info("Alterações descartadas.");
-  };
-
-  const formatPhone = (value: string) => {
-    // remove tudo que não for número
-    let numbers = value.replace(/\D/g, "");
-
-    // garante o código do país
-    if (!numbers.startsWith("55")) {
-      numbers = "55" + numbers;
-    }
-
-    // limita o tamanho: 55 + DDD + 9 dígitos
-    numbers = numbers.slice(0, 13);
-
-    // aplica a máscara
-    return numbers
-      .replace(/^(\d{2})(\d{2})(\d{5})(\d{0,4})/, "+$1 ($2) $3-$4")
-      .replace(/-$/, "");
   };
 
   useEffect(() => {
-    const load = async () => {
-      handleConfig();
-    };
-
-    load();
+    fetchConfig();
   }, []);
 
+  // Verifica se houve alteração (comparação profunda simples)
+  const isDirty = useMemo(() => {
+    return JSON.stringify(formData) !== JSON.stringify(initialData);
+  }, [formData, initialData]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await api.put("/admin/configuracoes/gerais", formData);
+      setInitialData(formData);
+      toast.success("Configurações atualizadas!");
+    } catch (error) {
+      toast.error("Erro ao salvar alterações.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePhoneChange = (val: string) => {
+    let numbers = val.replace(/\D/g, "");
+    if (numbers.length > 11) numbers = numbers.slice(0, 11);
+
+    const masked = numbers
+      .replace(/^(\d{2})(\d)/g, "($1) $2")
+      .replace(/(\d{5})(\d)/, "$1-$2");
+
+    setFormData({ ...formData, NR_TELEFONE: masked });
+  };
+
+  if (isLoading)
+    return (
+      <div className="p-20 text-center animate-pulse font-black text-slate-400">
+        Sincronizando preferências...
+      </div>
+    );
+
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-8 pb-10">
-      {/* 1. Page Heading */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[var(--zephira-text)] dark:text-white">
+    <div className="max-w-[1400px] mx-auto flex flex-col gap-10 pb-16 animate-in fade-in duration-500">
+      {/* 1. Top Header bar */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
+        <div>
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
             Configurações Gerais
           </h1>
-          <p className="text-[var(--zephira-muted)] text-sm font-medium">
-            Atualize a identidade da loja, configurações regionais e assets da
-            marca.
+          <p className="text-slate-500 font-medium mt-1">
+            Defina a identidade, moeda e canais de contato da Zephira.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex gap-3 w-full md:w-auto">
+          {isDirty && (
+            <button
+              onClick={() => setFormData(initialData!)}
+              className="flex-1 md:flex-none px-6 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold text-sm rounded-2xl hover:bg-slate-50 transition-all"
+            >
+              Descartar
+            </button>
+          )}
           <button
             onClick={handleSave}
-            className="bg-[var(--zephira-primary)] hover:bg-[var(--zephira-primary)]/90 text-[#0f1715] px-6 py-2.5 rounded-lg text-sm font-bold shadow-lg shadow-[var(--zephira-primary)]/20 transition-all active:scale-95"
+            disabled={!isDirty || isSaving}
+            className={cn(
+              "flex-1 md:flex-none px-8 py-3 rounded-2xl font-black text-sm transition-all shadow-lg",
+              isDirty
+                ? "bg-[#11d4c4] text-[#0a1615] shadow-[#11d4c4]/20 hover:scale-[1.02] active:scale-95"
+                : "bg-slate-100 dark:bg-white/5 text-slate-400 cursor-not-allowed shadow-none",
+            )}
           >
-            Salvar Alterações
+            {isSaving ? "Salvando..." : "Salvar Alterações"}
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* --- COLUNA ESQUERDA (PRINCIPAL) --- */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Identidade da Loja */}
-          <section className="bg-white dark:bg-[#102220] rounded-xl border border-gray-200 dark:border-white/5 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/5 bg-gray-50/50 dark:bg-black/20">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                Identidade da Loja
-              </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+        {/* --- COLUNA ESQUERDA: Formulários --- */}
+        <div className="lg:col-span-8 space-y-8">
+          {/* Sessão: Identidade */}
+          <section className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2">
+              <h3 className="font-black text-lg">Perfil da Loja</h3>
             </div>
-            <div className="p-6 space-y-6">
-              <div className="flex flex-col">
-                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                  Nome da Loja
+            <div className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Nome Comercial da Loja
                 </label>
                 <input
-                  type="text"
-                  value={storeName}
-                  onChange={(e) => setStoreName(e.target.value)}
-                  placeholder="Digite o nome da loja"
-                  className="w-full rounded-lg border-gray-200 dark:border-white/10 bg-white dark:bg-black/20 px-4 py-3 outline-none focus:ring-2 focus:ring-[var(--zephira-primary)] text-sm transition-all dark:text-white"
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                  value={formData.NM_LOJA}
+                  onChange={(e) =>
+                    setFormData({ ...formData, NM_LOJA: e.target.value })
+                  }
+                  placeholder="Ex: Zephira Joias"
                 />
               </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col">
-                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                    Email de Suporte
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    E-mail de Suporte
                   </label>
-                  <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-3 text-gray-400 text-[20px]">
+                  <div className="relative group">
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl group-focus-within:text-[#11d4c4]">
                       mail
                     </span>
                     <input
-                      type="email"
-                      value={supportEmail}
-                      onChange={(e) => setSupportEmail(e.target.value)}
-                      placeholder="email@exemplo.com"
-                      className="w-full pl-10 pr-4 rounded-lg border-gray-200 dark:border-white/10 bg-white dark:bg-black/20 py-3 outline-none focus:ring-2 focus:ring-[var(--zephira-primary)] text-sm transition-all dark:text-white"
+                      className="w-full h-12 pl-12 pr-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none"
+                      value={formData.DS_EMAIL_SUPORTE}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          DS_EMAIL_SUPORTE: e.target.value,
+                        })
+                      }
+                      placeholder="ajuda@zephira.com"
                     />
                   </div>
                 </div>
-                <div className="flex flex-col">
-                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                    Telefone de Contato
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Telefone / WhatsApp
                   </label>
-                  <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-3 text-gray-400 text-[20px]">
+                  <div className="relative group">
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl group-focus-within:text-[#11d4c4]">
                       call
                     </span>
                     <input
-                      type="tel"
-                      value={contactPhone}
-                      onChange={(e) =>
-                        setContactPhone(formatPhone(e.target.value))
-                      }
-                      placeholder="+55 (00) 00000-0000"
-                      className="w-full pl-10 pr-4 rounded-lg border-gray-200 dark:border-white/10 bg-white dark:bg-black/20 py-3 outline-none focus:ring-2 focus:ring-[var(--zephira-primary)] text-sm transition-all dark:text-white"
+                      className="w-full h-12 pl-12 pr-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none"
+                      value={formData.NR_TELEFONE}
+                      onChange={(e) => handlePhoneChange(e.target.value)}
+                      placeholder="(11) 99999-9999"
                     />
                   </div>
                 </div>
@@ -179,112 +199,99 @@ export default function SettingsGeralPage() {
             </div>
           </section>
 
-          {/* Configurações Regionais */}
-          <section className="bg-white dark:bg-[#102220] rounded-xl border border-gray-200 dark:border-white/5 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/5 bg-gray-50/50 dark:bg-black/20">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                Configurações Regionais
-              </h2>
+          {/* Sessão: Regional */}
+          <section className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2">
+              <h3 className="font-black text-lg">Localização & Moeda</h3>
             </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex flex-col">
-                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
-                  Moeda Principal
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Moeda Padrão
                 </label>
-                <div className="relative">
-                  <select
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
-                    className="w-full appearance-none rounded-lg border-gray-200 dark:border-white/10 bg-white dark:bg-black/20 px-4 py-3 outline-none focus:ring-2 focus:ring-[var(--zephira-primary)] text-sm transition-all cursor-pointer dark:text-white"
-                  >
-                    <option value="BRL">BRL - Real Brasileiro (R$)</option>
-                    <option value="USD">USD - Dólar Americano ($)</option>
-                    <option value="EUR">EUR - Euro (€)</option>
-                  </select>
-                  <span className="material-symbols-outlined absolute right-3 top-3 text-gray-400 pointer-events-none">
-                    expand_more
-                  </span>
-                </div>
+                <select
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 outline-none cursor-pointer font-bold"
+                  value={formData.SG_MOEDA}
+                  onChange={(e) =>
+                    setFormData({ ...formData, SG_MOEDA: e.target.value })
+                  }
+                >
+                  <option value="BRL">BRL - Real Brasileiro (R$)</option>
+                  <option value="USD">USD - Dólar Americano ($)</option>
+                  <option value="EUR">EUR - Euro (€)</option>
+                </select>
               </div>
-              <div className="flex flex-col">
-                <label className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
                   Fuso Horário
                 </label>
-                <div className="relative">
-                  <select
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    className="w-full appearance-none rounded-lg border-gray-200 dark:border-white/10 bg-white dark:bg-black/20 px-4 py-3 outline-none focus:ring-2 focus:ring-[var(--zephira-primary)] text-sm transition-all cursor-pointer dark:text-white"
-                  >
-                    <option value="UTC-3">Horário de Brasília (UTC-3)</option>
-                    <option value="UTC-4">Horário da Amazônia (UTC-4)</option>
-                    <option value="UTC-5">Eastern Standard Time (UTC-5)</option>
-                  </select>
-                  <span className="material-symbols-outlined absolute right-3 top-3 text-gray-400 pointer-events-none">
-                    expand_more
-                  </span>
-                </div>
+                <select
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 outline-none cursor-pointer font-bold"
+                  value={formData.DS_FUSO_HORARIO}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      DS_FUSO_HORARIO: e.target.value,
+                    })
+                  }
+                >
+                  <option value="UTC-3">São Paulo (UTC-3)</option>
+                  <option value="UTC-4">Manaus (UTC-4)</option>
+                  <option value="UTC-5">Nova York (UTC-5)</option>
+                </select>
               </div>
             </div>
           </section>
         </div>
 
-        {/* --- COLUNA DIREITA (ASSETS) --- */}
-        <div className="space-y-8">
-          <section className="bg-white dark:bg-[#102220] rounded-xl border border-gray-200 dark:border-white/5 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/5 bg-gray-50/50 dark:bg-black/20">
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                Assets da Marca
-              </h2>
-            </div>
-            <div className="p-6 space-y-8">
+        {/* --- COLUNA DIREITA: Assets & Dicas --- */}
+        <aside className="lg:col-span-4 space-y-8">
+          <section className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm p-8">
+            <h3 className="font-black text-lg mb-6">Assets da Marca</h3>
+
+            <div className="space-y-8">
               {/* Logo Upload */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                  <span className="text-xs font-black uppercase text-slate-400">
                     Logo Principal
-                  </label>
-                  <button className="text-xs font-bold text-blue-500 hover:text-blue-600 hover:underline">
-                    Substituir
+                  </span>
+                  <button className="text-[#11d4c4] text-[10px] font-black uppercase hover:underline">
+                    Alterar
                   </button>
                 </div>
-                <div className="border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl p-8 flex flex-col items-center justify-center bg-gray-50 dark:bg-black/20 hover:bg-gray-100 dark:hover:bg-white/5 transition-all cursor-pointer group">
-                  <div className="size-20 bg-white dark:bg-white/5 rounded-lg flex items-center justify-center mb-4 shadow-sm group-hover:scale-105 transition-transform border border-gray-100 dark:border-white/5">
-                    <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-500">
-                      image
-                    </span>
-                  </div>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                    PNG ou SVG até 2MB
-                  </p>
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    Recomendado: 400x120px
+                <div className="h-32 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center bg-slate-50 dark:bg-white/2 group hover:border-[#11d4c4]/40 transition-all cursor-pointer">
+                  <span className="material-symbols-outlined text-3xl text-slate-300 group-hover:scale-110 transition-transform">
+                    image
+                  </span>
+                  <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">
+                    PNG ou SVG (Max 2MB)
                   </p>
                 </div>
               </div>
 
               {/* Favicon Upload */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <label className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                  <span className="text-xs font-black uppercase text-slate-400">
                     Favicon
-                  </label>
-                  <button className="text-xs font-bold text-blue-500 hover:text-blue-600 hover:underline">
-                    Substituir
+                  </span>
+                  <button className="text-[#11d4c4] text-[10px] font-black uppercase hover:underline">
+                    Alterar
                   </button>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="size-16 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-xl flex items-center justify-center bg-gray-50 dark:bg-black/20 shrink-0">
-                    <span className="material-symbols-outlined text-2xl text-gray-300 dark:text-gray-500">
+                <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-white/2 border border-slate-100 dark:border-white/5">
+                  <div className="size-12 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center shadow-sm border border-slate-100 dark:border-white/10">
+                    <span className="material-symbols-outlined text-slate-400">
                       public
                     </span>
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <p className="text-[10px] font-black uppercase text-slate-500">
                       Ícone do Navegador
                     </p>
-                    <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
-                      Recomendado: 32x32px .ico ou .png
+                    <p className="text-[9px] text-slate-400 font-medium">
+                      Recomendado: 32x32px
                     </p>
                   </div>
                 </div>
@@ -292,25 +299,27 @@ export default function SettingsGeralPage() {
             </div>
           </section>
 
-          {/* Dica */}
-          <div className="bg-[var(--zephira-primary)]/5 border border-[var(--zephira-primary)]/20 rounded-xl p-6">
-            <div className="flex gap-3">
-              <span className="material-symbols-outlined text-[var(--zephira-primary)] shrink-0">
-                info
+          {/* Dica Sidebar */}
+          <div className="bg-[#11d4c4]/5 rounded-3xl p-6 border border-[#11d4c4]/20 relative overflow-hidden group">
+            <div className="flex gap-3 relative z-10">
+              <span className="material-symbols-outlined text-[#11d4c4]">
+                lightbulb
               </span>
               <div>
-                <h3 className="text-sm font-bold text-[var(--zephira-primary)] mb-1">
-                  Dica de Configuração
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                  Alterações na moeda e fuso horário afetarão apenas novos
-                  pedidos e relatórios futuros. Dados históricos permanecem
-                  inalterados.
+                <h4 className="font-black text-[#11d4c4] text-sm uppercase">
+                  Dica de Identidade
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  O nome da loja e o e-mail de suporte serão exibidos nos
+                  recibos de compra e e-mails de transação dos clientes.
                 </p>
               </div>
             </div>
+            <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-[#11d4c4]/5 text-8xl group-hover:rotate-12 transition-transform">
+              auto_awesome
+            </span>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );

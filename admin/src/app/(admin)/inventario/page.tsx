@@ -1,15 +1,18 @@
 "use client";
 
-import { AddVariationModal } from "@/components/dashboard/inventario/addVariationModal";
-import { DeleteProductModal } from "@/components/dashboard/inventario/deleteProductModal";
-import { DeleteVariacaoModal } from "@/components/dashboard/inventario/deleteVariacaoModal"; // Importe o novo modal
-import { EditProductModal } from "@/components/dashboard/inventario/editProductModal";
-import { NewProductModal } from "@/components/dashboard/inventario/novoProdutoModal";
 import api from "@/lib/api";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Fragment, useEffect, useMemo, useState } from "react";
 
-// Interface da API (Flat)
+// Componentes de Modal
+import { AddVariationModal } from "@/components/dashboard/inventario/addVariationModal";
+import { DeleteProductModal } from "@/components/dashboard/inventario/deleteProductModal";
+import { DeleteVariacaoModal } from "@/components/dashboard/inventario/deleteVariacaoModal";
+import { EditProductModal } from "@/components/dashboard/inventario/editProductModal";
+import { NewProductModal } from "@/components/dashboard/inventario/novoProdutoModal";
+
+// --- Interfaces ---
 interface InventoryItem {
   CD_VARIACAO: number;
   DS_TAMANHO: string;
@@ -24,7 +27,6 @@ interface InventoryItem {
   ds_css_status: string;
 }
 
-// Interface Agrupada
 interface GroupedProduct {
   CD_PRODUTO: number;
   NM_PRODUTO: string;
@@ -34,35 +36,62 @@ interface GroupedProduct {
   variations: InventoryItem[];
 }
 
+// --- Helpers de Estilo ---
+const getStatusConfig = (status: string) => {
+  const map: Record<string, { bg: string; text: string; dot: string }> = {
+    "Em Estoque": {
+      bg: "bg-emerald-100 dark:bg-emerald-900/30",
+      text: "text-emerald-700 dark:text-emerald-400",
+      dot: "bg-emerald-500",
+    },
+    "Estoque Baixo": {
+      bg: "bg-amber-100 dark:bg-amber-900/30",
+      text: "text-amber-700 dark:text-amber-400",
+      dot: "bg-amber-500",
+    },
+    Esgotado: {
+      bg: "bg-red-100 dark:bg-red-900/30",
+      text: "text-red-700 dark:text-red-400",
+      dot: "bg-red-500",
+    },
+  };
+  return (
+    map[status] || {
+      bg: "bg-slate-100",
+      text: "text-slate-600",
+      dot: "bg-slate-400",
+    }
+  );
+};
+
 export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Modais de Produto Pai
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isVariationModalOpen, setIsVariationModalOpen] = useState(false);
-
-  // States de Ação
-  const [editingProduct, setEditingProduct] = useState<any>(null); // Editar (Pode ser usado para variação se a lógica for a mesma)
-  const [deletingProduct, setDeletingProduct] = useState<any>(null); // Excluir Produto Pai
-  const [deletingVariation, setDeletingVariation] =
-    useState<InventoryItem | null>(null); // NOVO: Excluir Variação Específica
-
-  const [variationParent, setVariationParent] = useState<any>(null);
-
-  // Dados
   const [rawInventory, setRawInventory] = useState<InventoryItem[]>([]);
   const [expandedRows, setExpandedRows] = useState<number[]>([]);
-
-  // Paginação
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 5;
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Modais e Ações
+  const [modals, setModals] = useState({
+    newProduct: false,
+    variation: false,
+    edit: null as any,
+    deleteProduct: null as any,
+    deleteVariation: null as any,
+  });
+
+  const [variationParent, setVariationParent] = useState<any>(null);
+  const ITEMS_PER_PAGE = 8;
 
   const fetchInventory = async () => {
+    setIsLoading(true);
     try {
       const response = await api.get("/admin/estoque-detalhes");
       setRawInventory(response.data);
     } catch (error) {
-      console.error(error);
+      console.error("Erro ao buscar estoque:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -70,10 +99,9 @@ export default function InventoryPage() {
     fetchInventory();
   }, []);
 
-  // --- LÓGICA DE AGRUPAMENTO (MANTIDA IGUAL) ---
+  // Agrupamento de Dados
   const groupedInventory = useMemo(() => {
     const groups: Record<number, GroupedProduct> = {};
-
     rawInventory.forEach((item) => {
       if (!groups[item.CD_PRODUTO]) {
         groups[item.CD_PRODUTO] = {
@@ -90,379 +118,353 @@ export default function InventoryPage() {
     });
 
     const list = Object.values(groups);
-    if (!searchTerm) return list;
-
-    return list.filter(
-      (prod) =>
-        prod.NM_PRODUTO.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        prod.variations.some((v) =>
-          v.CD_SKU.toLowerCase().includes(searchTerm.toLowerCase())
+    return searchTerm
+      ? list.filter(
+          (p) =>
+            p.NM_PRODUTO.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.variations.some((v) =>
+              v.CD_SKU.toLowerCase().includes(searchTerm.toLowerCase()),
+            ),
         )
-    );
+      : list;
   }, [rawInventory, searchTerm]);
 
-  const totalPages = Math.ceil(groupedInventory.length / ITEMS_PER_PAGE);
   const paginatedData = groupedInventory.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    currentPage * ITEMS_PER_PAGE,
   );
+  const totalPages = Math.ceil(groupedInventory.length / ITEMS_PER_PAGE);
 
-  const toggleRow = (productId: number) => {
+  const toggleRow = (id: number) =>
     setExpandedRows((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
-  };
 
-  // Helpers Visuais (MANTIDOS IGUAIS)
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Em Estoque":
-        return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400";
-      case "Estoque Baixo":
-        return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
-      case "Esgotado":
-        return "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
-      default:
-        return "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
-    }
-  };
-
-  const getStatusDot = (status: string) => {
-    switch (status) {
-      case "Em Estoque":
-        return "bg-emerald-500";
-      case "Estoque Baixo":
-        return "bg-amber-500";
-      case "Esgotado":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
-
-  const handleAddVariation = (product: GroupedProduct) => {
-    setVariationParent({
-      CD_PRODUTO: product.CD_PRODUTO,
-      NM_PRODUTO: product.NM_PRODUTO,
-      ds_imagem_thumb: product.ds_imagem_thumb,
-    });
-    setIsVariationModalOpen(true);
-  };
+  const formatter = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 
   return (
-    <div className="max-w-[1200px] mx-auto flex flex-col gap-6 pb-10">
-      {/* --- MODAIS --- */}
+    <div className="max-w-[1400px] mx-auto flex flex-col gap-6 pb-10 animate-in fade-in duration-500">
+      {/* Modais */}
       <NewProductModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={modals.newProduct}
+        onClose={() => setModals({ ...modals, newProduct: false })}
       />
-
       <AddVariationModal
-        isOpen={isVariationModalOpen}
-        onClose={() => setIsVariationModalOpen(false)}
+        isOpen={modals.variation}
         product={variationParent}
+        onClose={() => setModals({ ...modals, variation: false })}
         onSuccess={fetchInventory}
       />
-
       <EditProductModal
-        isOpen={!!editingProduct}
-        onClose={() => setEditingProduct(null)}
-        product={editingProduct}
+        isOpen={!!modals.edit}
+        product={modals.edit}
+        onClose={() => setModals({ ...modals, edit: null })}
         onSuccess={fetchInventory}
       />
-
-      {/* Modal para Excluir PRODUTO PAI (Tudo) */}
       <DeleteProductModal
-        isOpen={!!deletingProduct}
-        onClose={() => setDeletingProduct(null)}
-        product={deletingProduct}
+        isOpen={!!modals.deleteProduct}
+        product={modals.deleteProduct}
+        onClose={() => setModals({ ...modals, deleteProduct: null })}
         onSuccess={fetchInventory}
       />
-
-      {/* Modal para Excluir VARIAÇÃO ESPECÍFICA (Filho) */}
       <DeleteVariacaoModal
-        isOpen={!!deletingVariation} // CORRIGIDO: Usa o state correto
-        onClose={() => setDeletingVariation(null)}
-        product={deletingVariation} // Passa a variação
+        isOpen={!!modals.deleteVariation}
+        product={modals.deleteVariation}
+        onClose={() => setModals({ ...modals, deleteVariation: null })}
         onSuccess={fetchInventory}
       />
 
-      {/* 1. Cabeçalho (MANTIDO) */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-3xl md:text-4xl font-black tracking-tight text-[var(--zephira-text)] dark:text-white">
+      {/* Header */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <h2 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
             Estoque
           </h2>
-          <p className="text-[var(--zephira-muted)] text-base font-medium">
-            Gerencie produtos e suas variações.
+          <p className="text-slate-500 font-medium">
+            Controle total de produtos e SKUs.
           </p>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center justify-center gap-2 h-11 px-5 rounded-lg bg-[var(--zephira-primary)] hover:brightness-105 text-[#102220] font-bold shadow-lg shadow-[var(--zephira-primary)]/20 transition-all active:scale-95"
-          >
-            <span className="material-symbols-outlined">add</span>
-            <span>Novo Produto</span>
-          </button>
-        </div>
+        <button
+          onClick={() => setModals({ ...modals, newProduct: true })}
+          className="flex items-center justify-center gap-2 h-12 px-6 rounded-2xl bg-[#11d4c4] text-[#0a1615] font-black shadow-lg shadow-[#11d4c4]/20 hover:scale-[1.02] transition-all active:scale-95"
+        >
+          <span className="material-symbols-outlined">add_circle</span>
+          Novo Produto
+        </button>
+      </header>
+
+      {/* Busca */}
+      <div className="relative group">
+        <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#11d4c4] transition-colors">
+          search
+        </span>
+        <input
+          className="w-full h-14 pl-12 pr-4 rounded-2xl bg-white dark:bg-[#102220] border border-slate-200 dark:border-white/5 focus:ring-4 focus:ring-[#11d4c4]/10 transition-all outline-none font-medium"
+          placeholder="Pesquisar por nome do produto ou SKU..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
-      {/* 2. Filtros (MANTIDO) */}
-      <div className="flex flex-col lg:flex-row gap-4 bg-white dark:bg-[var(--zephira-dark)] p-4 rounded-xl border border-gray-200 dark:border-white/5 shadow-sm">
-        <div className="flex-1 min-w-[280px]">
-          <label className="relative flex items-center w-full h-11">
-            <span className="material-symbols-outlined absolute left-3 text-[var(--zephira-muted)]">
-              search
-            </span>
-            <input
-              className="w-full h-full pl-10 pr-4 rounded-lg bg-gray-50 dark:bg-[#0b1816] border-transparent focus:border-[var(--zephira-primary)] focus:bg-white dark:focus:bg-black focus:ring-0 transition-colors text-sm text-[var(--zephira-text)] dark:text-white"
-              placeholder="Buscar por produto, SKU..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* 3. Tabela Hierárquica */}
-      <div className="bg-white dark:bg-[var(--zephira-dark)] rounded-xl border border-gray-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      {/* Tabela */}
+      <div className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto text-sm">
+          <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-gray-50 dark:bg-[#0b1816] border-b border-gray-200 dark:border-white/5 text-[var(--zephira-muted)] text-xs uppercase">
-                <th className="py-4 px-6 w-12" />
-                <th className="py-4 px-6 font-bold">Produto</th>
-                <th className="py-4 px-6 font-bold">Categoria</th>
-                <th className="py-4 px-6 font-bold text-center">
-                  Total Variações
-                </th>
-                <th className="py-4 px-6 font-bold text-center">
-                  Estoque Total
-                </th>
-                <th className="py-4 px-6 font-bold text-right">Ações</th>
+              <tr className="bg-slate-50/50 dark:bg-white/2 text-slate-400 text-[10px] font-black uppercase tracking-widest border-b border-slate-100 dark:border-white/5">
+                <th className="p-5 w-16" />
+                <th className="p-5">Produto</th>
+                <th className="p-5">Categoria</th>
+                <th className="p-5 text-center">Variações</th>
+                <th className="p-5 text-center">Total Estoque</th>
+                <th className="p-5 text-right">Ações</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-              {paginatedData.map((product) => {
-                const isExpanded = expandedRows.includes(product.CD_PRODUTO);
-
-                return (
-                  <Fragment key={product.CD_PRODUTO}>
-                    {/* LINHA PAI (PRODUTO) */}
-                    <tr
-                      className={`group transition-colors cursor-pointer ${isExpanded ? "bg-gray-50 dark:bg-white/5" : "hover:bg-gray-50 dark:hover:bg-white/5"}`}
-                      onClick={() => toggleRow(product.CD_PRODUTO)}
-                    >
-                      {/* Seta */}
-                      <td className="py-4 px-6 text-center">
-                        <button
-                          className={`p-1 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
-                        >
-                          <span className="material-symbols-outlined text-gray-400">
+            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+              {isLoading ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="p-20 text-center animate-pulse text-slate-400 font-bold"
+                  >
+                    Carregando inventário...
+                  </td>
+                </tr>
+              ) : paginatedData.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-20 text-center text-slate-400">
+                    Nenhum produto encontrado.
+                  </td>
+                </tr>
+              ) : (
+                paginatedData.map((product) => {
+                  const isExpanded = expandedRows.includes(product.CD_PRODUTO);
+                  return (
+                    <Fragment key={product.CD_PRODUTO}>
+                      <tr
+                        className={cn(
+                          "group cursor-pointer transition-colors",
+                          isExpanded
+                            ? "bg-slate-50/50 dark:bg-white/[0.03]"
+                            : "hover:bg-slate-50 dark:hover:bg-white/5",
+                        )}
+                        onClick={() => toggleRow(product.CD_PRODUTO)}
+                      >
+                        <td className="p-5 text-center">
+                          <span
+                            className={cn(
+                              "material-symbols-outlined text-slate-300 transition-transform duration-300",
+                              isExpanded && "rotate-90 text-[#11d4c4]",
+                            )}
+                          >
                             chevron_right
                           </span>
-                        </button>
-                      </td>
-
-                      {/* Info Produto */}
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-4">
-                          <div className="size-10 rounded-lg bg-gray-100 relative overflow-hidden shrink-0 border border-gray-200 dark:border-white/10">
-                            <Image
-                              src={
-                                product.ds_imagem_thumb?.startsWith("http")
-                                  ? product.ds_imagem_thumb
-                                  : "/assets/placeholder.png"
-                              }
-                              alt={product.NM_PRODUTO}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                          <span className="font-bold text-[var(--zephira-text)] dark:text-white">
-                            {product.NM_PRODUTO}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-sm text-[var(--zephira-muted)]">
-                        {product.NM_CATEGORIA}
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300">
-                          {product.variations.length} Opções
-                        </span>
-                      </td>
-                      <td className="py-4 px-6 text-center font-bold text-[var(--zephira-text)] dark:text-white">
-                        {product.total_estoque}
-                      </td>
-
-                      {/* Ações do Pai */}
-                      <td
-                        className="py-4 px-6 text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleAddVariation(product)}
-                            className="text-[var(--zephira-muted)] hover:text-[var(--zephira-primary)] p-2 hover:bg-[var(--zephira-primary)]/10 rounded-lg transition-colors"
-                            title="Adicionar Variação"
-                          >
-                            <span className="material-symbols-outlined">
-                              playlist_add
-                            </span>
-                          </button>
-                          <button
-                            onClick={() => setDeletingProduct(product)}
-                            className="text-[var(--zephira-muted)] hover:text-red-500 p-2 hover:bg-red-500/10 rounded-lg transition-colors"
-                            title="Excluir Produto Completo"
-                          >
-                            <span className="material-symbols-outlined">
-                              delete
-                            </span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* LINHA FILHA (VARIAÇÕES) */}
-                    {isExpanded && (
-                      <tr className="bg-gray-50/50 dark:bg-black/20 border-b border-gray-100 dark:border-white/5 animate-in slide-in-from-top-2 fade-in duration-200">
-                        <td colSpan={6} className="p-0">
-                          <div className="px-6 pb-6 pt-2">
-                            <div className="rounded-lg border border-gray-200 dark:border-white/5 overflow-hidden">
-                              <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-100 dark:bg-white/5 text-[var(--zephira-muted)] text-xs uppercase">
-                                  <tr>
-                                    <th className="px-4 py-2 font-semibold">
-                                      SKU
-                                    </th>
-                                    <th className="px-4 py-2 font-semibold">
-                                      Tamanho
-                                    </th>
-                                    <th className="px-4 py-2 font-semibold">
-                                      Preço
-                                    </th>
-                                    <th className="px-4 py-2 font-semibold text-center">
-                                      Estoque
-                                    </th>
-                                    <th className="px-4 py-2 font-semibold text-center">
-                                      Status
-                                    </th>
-                                    <th className="px-4 py-2 font-semibold text-right">
-                                      Ações
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-white/5 bg-white dark:bg-[#152321]">
-                                  {product.variations.map((variant) => (
-                                    <tr
-                                      key={variant.CD_VARIACAO}
-                                      className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                                    >
-                                      <td className="px-4 py-3 font-mono text-xs text-gray-500">
-                                        {variant.CD_SKU}
-                                      </td>
-                                      <td className="px-4 py-3 font-bold text-[var(--zephira-text)] dark:text-white">
-                                        {variant.DS_TAMANHO}
-                                      </td>
-                                      <td className="px-4 py-3 text-white">
-                                        R$ {variant.VL_PRECO}
-                                      </td>
-                                      <td className="px-4 py-3 text-center text-white">
-                                        {variant.QT_ESTOQUE}
-                                      </td>
-                                      <td className="px-4 py-3 text-center">
-                                        <span
-                                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold ${getStatusColor(variant.ds_status_texto)}`}
-                                        >
-                                          <span
-                                            className={`size-1 rounded-full ${getStatusDot(variant.ds_status_texto)}`}
-                                          />
-                                          {variant.ds_status_texto}
-                                        </span>
-                                      </td>
-
-                                      {/* Ações da Variação (CORRIGIDO) */}
-                                      <td className="px-4 py-3 text-right">
-                                        <div className="flex justify-end gap-1">
-                                          <button
-                                            onClick={() =>
-                                              setEditingProduct(variant)
-                                            }
-                                            className="p-1.5 text-gray-400 hover:text-[var(--zephira-primary)] hover:bg-[var(--zephira-primary)]/10 rounded"
-                                          >
-                                            <span className="material-symbols-outlined text-[16px]">
-                                              edit
-                                            </span>
-                                          </button>
-
-                                          {/* CORREÇÃO AQUI: Chama setDeletingVariation, não setDeletingProduct */}
-                                          <button
-                                            onClick={() =>
-                                              setDeletingVariation(variant)
-                                            }
-                                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-500/10 rounded"
-                                          >
-                                            <span className="material-symbols-outlined text-[16px]">
-                                              delete
-                                            </span>
-                                          </button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
+                        </td>
+                        <td className="p-5">
+                          <div className="flex items-center gap-4">
+                            <div className="size-12 rounded-xl bg-slate-100 relative overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm">
+                              <Image
+                                src={
+                                  product.ds_imagem_thumb || "/placeholder.png"
+                                }
+                                alt={product.NM_PRODUTO}
+                                fill
+                                className="object-cover"
+                              />
                             </div>
+                            <span className="font-black text-slate-900 dark:text-white text-base">
+                              {product.NM_PRODUTO}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-5 text-slate-500 font-medium">
+                          {product.NM_CATEGORIA}
+                        </td>
+                        <td className="p-5 text-center">
+                          <span className="bg-slate-100 dark:bg-white/5 px-3 py-1 rounded-full text-[10px] font-black uppercase text-slate-500">
+                            {product.variations.length} tipos
+                          </span>
+                        </td>
+                        <td className="p-5 text-center font-black text-slate-900 dark:text-white">
+                          {product.total_estoque}
+                        </td>
+                        <td
+                          className="p-5 text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => {
+                                setVariationParent(product);
+                                setModals({ ...modals, variation: true });
+                              }}
+                              className="p-2 hover:bg-[#11d4c4]/10 text-[#11d4c4] rounded-xl transition-all"
+                            >
+                              <span className="material-symbols-outlined">
+                                playlist_add
+                              </span>
+                            </button>
+                            <button
+                              onClick={() =>
+                                setModals({ ...modals, deleteProduct: product })
+                              }
+                              className="p-2 hover:bg-red-500/10 text-red-500 rounded-xl transition-all"
+                            >
+                              <span className="material-symbols-outlined">
+                                delete
+                              </span>
+                            </button>
                           </div>
                         </td>
                       </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
+
+                      {/* Linha Expandida (Variações) */}
+                      {isExpanded && (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            className="p-0 bg-slate-50/30 dark:bg-black/10"
+                          >
+                            <div className="p-6 pt-0 animate-in slide-in-from-top-2 duration-300">
+                              <div className="rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-inner">
+                                <table className="w-full text-xs">
+                                  <thead className="bg-slate-100 dark:bg-white/5 text-slate-400 font-black uppercase tracking-tighter">
+                                    <tr>
+                                      <th className="p-3 pl-5">SKU</th>
+                                      <th className="p-3">Tamanho</th>
+                                      <th className="p-3">Preço</th>
+                                      <th className="p-3 text-center">
+                                        Estoque
+                                      </th>
+                                      <th className="p-3 text-center">
+                                        Status
+                                      </th>
+                                      <th className="p-3 pr-5 text-right">
+                                        Ações
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100 dark:divide-white/5 bg-white dark:bg-[#0d1a18]">
+                                    {product.variations.map((variant) => {
+                                      const style = getStatusConfig(
+                                        variant.ds_status_texto,
+                                      );
+                                      return (
+                                        <tr
+                                          key={variant.CD_VARIACAO}
+                                          className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                                        >
+                                          <td className="p-3 pl-5 font-mono text-slate-400">
+                                            #{variant.CD_SKU}
+                                          </td>
+                                          <td className="p-3 font-black">
+                                            {variant.DS_TAMANHO}
+                                          </td>
+                                          <td className="p-3 font-medium text-slate-600 dark:text-slate-300">
+                                            {formatter.format(
+                                              Number(variant.VL_PRECO || 0),
+                                            )}
+                                          </td>
+                                          <td className="p-3 text-center font-black">
+                                            {variant.QT_ESTOQUE}
+                                          </td>
+                                          <td className="p-3 text-center">
+                                            <div
+                                              className={cn(
+                                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-black uppercase text-[9px]",
+                                                style.bg,
+                                                style.text,
+                                              )}
+                                            >
+                                              <span
+                                                className={cn(
+                                                  "size-1 rounded-full",
+                                                  style.dot,
+                                                )}
+                                              />
+                                              {variant.ds_status_texto}
+                                            </div>
+                                          </td>
+                                          <td className="p-3 pr-5 text-right">
+                                            <div className="flex justify-end gap-1">
+                                              <button
+                                                onClick={() =>
+                                                  setModals({
+                                                    ...modals,
+                                                    edit: variant,
+                                                  })
+                                                }
+                                                className="p-2 hover:bg-[#11d4c4]/10 text-[#11d4c4] rounded-lg transition-all"
+                                              >
+                                                <span className="material-symbols-outlined text-lg">
+                                                  edit
+                                                </span>
+                                              </button>
+                                              <button
+                                                onClick={() =>
+                                                  setModals({
+                                                    ...modals,
+                                                    deleteVariation: variant,
+                                                  })
+                                                }
+                                                className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-all"
+                                              >
+                                                <span className="material-symbols-outlined text-lg">
+                                                  delete
+                                                </span>
+                                              </button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Paginação (MANTIDO) */}
-        <div className="flex flex-col sm:flex-row items-center justify-between p-4 border-t border-gray-200 dark:border-white/5 gap-4 bg-white dark:bg-[var(--zephira-dark)]">
-          <p className="text-sm text-[var(--zephira-muted)]">
-            Mostrando{" "}
-            <span className="font-bold text-[var(--zephira-text)] dark:text-white">
-              {groupedInventory.length === 0
-                ? 0
-                : (currentPage - 1) * ITEMS_PER_PAGE + 1}
+        {/* Paginação */}
+        <footer className="p-6 border-t border-slate-100 dark:border-white/5 flex items-center justify-between bg-slate-50/20">
+          <p className="text-xs font-bold text-slate-400">
+            Página{" "}
+            <span className="text-slate-900 dark:text-white">
+              {currentPage}
             </span>{" "}
-            a{" "}
-            <span className="font-bold text-[var(--zephira-text)] dark:text-white">
-              {Math.min(currentPage * ITEMS_PER_PAGE, groupedInventory.length)}
-            </span>{" "}
-            de {groupedInventory.length} produtos
+            de{" "}
+            <span className="text-slate-900 dark:text-white">
+              {totalPages || 1}
+            </span>
           </p>
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             <button
               disabled={currentPage === 1}
               onClick={() => setCurrentPage((p) => p - 1)}
-              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-30"
+              className="p-2 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/5 transition-all disabled:opacity-30"
             >
               <span className="material-symbols-outlined">chevron_left</span>
             </button>
-            <span className="px-3 py-1 bg-[var(--zephira-primary)]/10 text-[var(--zephira-primary)] font-bold rounded text-sm">
-              {currentPage}
-            </span>
             <button
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage((p) => p + 1)}
-              className="p-1 rounded hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-30"
+              className="p-2 rounded-xl border border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/5 transition-all disabled:opacity-30"
             >
               <span className="material-symbols-outlined">chevron_right</span>
             </button>
           </div>
-        </div>
+        </footer>
       </div>
     </div>
   );

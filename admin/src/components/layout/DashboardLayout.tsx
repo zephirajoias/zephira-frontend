@@ -1,17 +1,16 @@
 "use client";
 
-import { ProfileModal } from "@/components/layout/profileModal"; // Ajuste o caminho se necessário
+import { ProfileModal } from "@/components/layout/profileModal";
 import { useUserData } from "@/hooks/useUserData";
+import { cn } from "@/lib/utils"; // Utilitário comum para concatenar classes (opcional)
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 
-// Constantes de Navegação (Configuração)
 const MENU_ITEMS = [
   { name: "Visão Geral", icon: "dashboard", href: "/" },
   { name: "Pedidos", icon: "shopping_bag", href: "/pedidos" },
   { name: "Inventário", icon: "inventory_2", href: "/inventario" },
-  // { name: "Promoções", icon: "local_offer", href: "/dashboard/promotions" },
   { name: "Administradores", icon: "group", href: "/usuarios-admin" },
   { name: "Configurações", icon: "settings", href: "/settings" },
 ];
@@ -23,29 +22,34 @@ export default function DashboardLayout({
 }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   const pathname = usePathname();
   const router = useRouter();
-
-  // Hook para dados do usuário (Nome, Email, Avatar)
   const { name, email } = useUserData();
 
+  console.log(name);
+
+  // Efeito para detectar scroll e mudar estilo do header
+  useEffect(() => {
+    const handleScroll = (e: any) => {
+      setIsScrolled(e.target.scrollTop > 10);
+    };
+    const mainArea = document.getElementById("main-content");
+    mainArea?.addEventListener("scroll", handleScroll);
+    return () => mainArea?.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleLogout = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede que o clique no botão "Sair" abra o modal de perfil
-    try {
-      document.cookie =
-        "zephira-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
-      localStorage.removeItem("zephira-token");
-      router.push("/login");
-    } catch (error) {
-      console.error("Erro ao sair:", error);
-      router.push("/login");
-    }
+    e.stopPropagation();
+    document.cookie =
+      "zephira_token_admin=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+    localStorage.removeItem("zephira_token_admin");
+    router.push("/login");
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#f6f8f8] dark:bg-[#102220]">
-      {/* Modal de Perfil */}
+    <div className="flex h-screen w-full overflow-hidden bg-[#f8fafc] dark:bg-[#0a1615] text-slate-900 dark:text-slate-100">
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
@@ -53,80 +57,84 @@ export default function DashboardLayout({
 
       {/* --- SIDEBAR --- */}
       <aside
-        className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-[#102220] border-r border-gray-200 dark:border-white/5 
-          transition-transform duration-300 lg:translate-x-0 lg:static flex flex-col
-          ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
-        `}
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-[#102220] border-r border-slate-200 dark:border-white/5 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static flex flex-col",
+          isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full",
+        )}
       >
-        <div className="p-6 pb-2">
-          {/* Logo */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-[#11d4c4]/10 text-[#11d4c4]">
-              <span className="material-symbols-outlined">diamond</span>
+        {/* Logo Section */}
+        <div className="p-6">
+          <div className="flex items-center gap-3 px-2">
+            <div className="flex items-center justify-center size-10 rounded-xl bg-gradient-to-br from-[#11d4c4] to-[#0eb0a3] text-white shadow-lg shadow-[#11d4c4]/20">
+              <span className="material-symbols-outlined text-2xl">
+                diamond
+              </span>
             </div>
-            <div className="flex flex-col">
-              <h1 className="text-[#111817] dark:text-white text-lg font-bold leading-none">
+            <div>
+              <h1 className="text-lg font-bold tracking-tight leading-none">
                 Zephira
               </h1>
-              <p className="text-[#618986] text-xs font-normal mt-1">
-                Admin Panel
-              </p>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#618986] opacity-80">
+                Admin Engine
+              </span>
             </div>
           </div>
-
-          <nav className="flex flex-col gap-2">
-            {MENU_ITEMS.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
-                    isActive
-                      ? "bg-[#11d4c4]/10 text-[#11d4c4] font-bold"
-                      : "text-[#111817] dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 font-medium"
-                  }`}
-                >
-                  <span
-                    className={`material-symbols-outlined ${isActive ? "fill-current" : ""}`}
-                  >
-                    {item.icon}
-                  </span>
-                  <span className="text-sm">{item.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
         </div>
 
-        {/* User Profile Footer */}
-        <div className="mt-auto p-6 border-t border-gray-200 dark:border-white/5">
-          <div
-            onClick={() => setIsProfileModalOpen(true)} // Abre o modal
-            className="flex items-center gap-3 w-full text-left group hover:bg-gray-50 dark:hover:bg-white/5 p-2 -ml-2 rounded-lg transition-colors cursor-pointer"
-            title="Gerenciar Conta"
-          >
-            <div className="size-9 rounded-full bg-gray-200 relative overflow-hidden flex-shrink-0 border border-gray-200 dark:border-white/10">
-              <div className="w-full h-full bg-gray-300 dark:bg-white/10 flex items-center justify-center text-gray-500 dark:text-gray-400">
-                <span className="material-symbols-outlined text-sm">
-                  person
+        {/* Navigation */}
+        <nav className="flex-1 px-4 space-y-1">
+          {MENU_ITEMS.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative",
+                  isActive
+                    ? "bg-[#11d4c4]/10 text-[#11d4c4]"
+                    : "hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white",
+                )}
+              >
+                {isActive && (
+                  <div className="absolute left-0 w-1 h-6 bg-[#11d4c4] rounded-r-full" />
+                )}
+                <span
+                  className={cn(
+                    "material-symbols-outlined transition-transform group-hover:scale-110",
+                    isActive && "fill-current",
+                  )}
+                >
+                  {item.icon}
                 </span>
-              </div>
+                <span className="text-sm font-semibold">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Profile Footer */}
+        <div className="p-4 mt-auto border-t border-slate-100 dark:border-white/5">
+          <div
+            onClick={() => setIsProfileModalOpen(true)}
+            className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all cursor-pointer group"
+          >
+            <div className="size-10 rounded-full bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-sm overflow-hidden flex-shrink-0">
+              <span className="material-symbols-outlined text-slate-500">
+                person
+              </span>
             </div>
-            <div className="flex flex-col flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#111817] dark:text-white truncate">
-                {name || "Carregando..."}
-              </p>
+            <div className="flex flex-col min-w-0">
+              <p className="text-sm font-bold truncate">{name || "Usuário"}</p>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1 text-xs text-[#618986] hover:text-red-500 transition-colors w-fit mt-0.5"
+                className="text-[11px] flex items-center gap-1 text-slate-500 hover:text-red-500 transition-colors font-medium"
               >
                 <span className="material-symbols-outlined text-[14px]">
                   logout
                 </span>
-                <span>Sair</span>
+                Sair da conta
               </button>
             </div>
           </div>
@@ -134,49 +142,70 @@ export default function DashboardLayout({
       </aside>
 
       {/* --- MAIN CONTENT --- */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden relative">
-        <header className="h-16 flex-shrink-0 flex items-center justify-between px-6 lg:px-8 bg-white dark:bg-[#102220] border-b border-gray-200 dark:border-white/5 z-40">
+      <div className="flex-1 flex flex-col relative min-w-0 h-full">
+        {/* Header */}
+        <header
+          className={cn(
+            "h-16 flex items-center justify-between px-6 sticky top-0 z-40 transition-all duration-300",
+            isScrolled
+              ? "bg-white/80 dark:bg-[#102220]/80 backdrop-blur-md shadow-sm"
+              : "bg-transparent",
+          )}
+        >
           <div className="flex items-center gap-4">
             <button
-              className="lg:hidden text-[#111817] dark:text-white"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Abrir menu"
+              className="lg:hidden p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors"
+              onClick={() => setIsMobileMenuOpen(true)}
             >
               <span className="material-symbols-outlined">menu</span>
             </button>
-            <h2 className="text-[#111817] dark:text-white text-lg font-bold hidden sm:block">
-              {MENU_ITEMS.find((i) => i.href === pathname)?.name || "Painel"}
-            </h2>
+            <div className="hidden sm:block">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Página
+              </p>
+              <h2 className="text-sm font-bold">
+                {MENU_ITEMS.find((i) => i.href === pathname)?.name ||
+                  "Painel Geral"}
+              </h2>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4 sm:gap-6">
-            <div className="hidden md:flex items-center bg-gray-100 dark:bg-white/5 rounded-lg px-3 py-2 w-64">
-              <span className="material-symbols-outlined text-[#618986] text-[20px]">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Search Bar - Expandível */}
+            <div className="relative hidden md:flex items-center group">
+              <span className="material-symbols-outlined absolute left-3 text-slate-400 text-xl group-focus-within:text-[#11d4c4] transition-colors">
                 search
               </span>
               <input
-                className="bg-transparent border-none text-sm text-[#111817] dark:text-white placeholder-gray-500 focus:ring-0 w-full ml-2 p-0 h-5 focus:outline-none"
-                placeholder="Buscar..."
                 type="text"
+                placeholder="Pesquisar..."
+                className="bg-slate-200/50 dark:bg-white/5 border-none rounded-xl pl-10 pr-4 py-2 text-sm w-48 lg:w-64 focus:w-80 transition-all focus:ring-2 focus:ring-[#11d4c4]/20 outline-none"
               />
             </div>
-            <button className="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
-              <span className="material-symbols-outlined text-[#111817] dark:text-white">
+
+            {/* Notificações */}
+            <button className="relative p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all group">
+              <span className="material-symbols-outlined text-slate-600 dark:text-slate-300 group-hover:rotate-12 transition-transform">
                 notifications
               </span>
-              <span className="absolute top-2.5 right-2.5 size-2 bg-red-500 rounded-full border-2 border-white dark:border-[#102220]"></span>
+              <span className="absolute top-2.5 right-2.5 size-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-[#102220]"></span>
             </button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8 scroll-smooth bg-[#f6f8f8] dark:bg-[#102220]">
-          <div className="min-h-full">{children}</div>
+        {/* Content Area */}
+        <main
+          id="main-content"
+          className="flex-1 overflow-y-auto p-4 lg:p-8 scroll-smooth"
+        >
+          <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
 
+      {/* Overlay Mobile */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-300"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}

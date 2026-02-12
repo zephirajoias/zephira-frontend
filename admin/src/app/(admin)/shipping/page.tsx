@@ -1,12 +1,21 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { toast } from "react-toastify";
 
-// Mock Data para Taxas
+// --- Mock Data ---
 const initialTaxRates = [
   {
     id: 1,
+    country: "Brasil",
+    type: "ICMS",
+    rate: 18.0,
+    enabled: true,
+    flag: "🇧🇷",
+  },
+  {
+    id: 2,
     country: "United States",
     type: "Sales Tax",
     rate: 8.87,
@@ -14,20 +23,12 @@ const initialTaxRates = [
     flag: "🇺🇸",
   },
   {
-    id: 2,
-    country: "United Kingdom",
-    type: "VAT",
-    rate: 20.0,
-    enabled: true,
-    flag: "🇬🇧",
-  },
-  {
     id: 3,
-    country: "France",
-    type: "VAT",
-    rate: 20.0,
+    country: "Portugal",
+    type: "IVA",
+    rate: 23.0,
     enabled: false,
-    flag: "🇫🇷",
+    flag: "🇵🇹",
   },
 ];
 
@@ -38,352 +39,192 @@ export default function ShippingPage() {
   // States de Envio
   const [flatRatePrice, setFlatRatePrice] = useState("15.00");
   const [handlingFee, setHandlingFee] = useState("2.50");
-
-  // States de Taxas
   const [taxRates, setTaxRates] = useState(initialTaxRates);
 
   const handleSave = () => {
     setIsLoading(true);
-    // Simulação de API
     setTimeout(() => {
-      toast.success("Configurações salvas com sucesso!");
+      toast.success("Configurações aplicadas com sucesso!");
       setIsLoading(false);
-    }, 800);
-  };
-
-  const handleTaxChange = (id: number, newValue: string) => {
-    setTaxRates((prev) =>
-      prev.map((rate) =>
-        rate.id === id ? { ...rate, rate: Number(newValue) } : rate,
-      ),
-    );
-  };
-
-  const toggleTaxStatus = (id: number) => {
-    setTaxRates((prev) =>
-      prev.map((rate) =>
-        rate.id === id ? { ...rate, enabled: !rate.enabled } : rate,
-      ),
-    );
+    }, 1200);
   };
 
   return (
-    <div className="max-w-[1200px] mx-auto flex flex-col gap-8 pb-10">
-      {/* 1. Page Heading & Actions */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="max-w-[1400px] mx-auto flex flex-col gap-8 pb-16 animate-in fade-in duration-500">
+      {/* 1. Header Fixo de Ações */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
         <div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[var(--zephira-text)] dark:text-white">
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
             Envio & Taxas
           </h1>
-          <p className="text-[var(--zephira-muted)] text-sm font-medium mt-1">
-            Configure logística de entrega global e conformidade fiscal.
+          <p className="text-slate-500 font-medium mt-1">
+            Controle a logística global e as obrigações fiscais da Zephira.
           </p>
         </div>
-        <div className="flex gap-3">
-          <button className="px-5 py-2.5 bg-white dark:bg-[#102220] border border-gray-200 dark:border-white/10 font-bold text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-[var(--zephira-muted)]">
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <button className="flex-1 md:flex-none px-6 py-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 font-bold text-sm rounded-2xl hover:bg-slate-50 transition-all">
             Descartar
           </button>
           <button
             onClick={handleSave}
             disabled={isLoading}
-            className="px-5 py-2.5 bg-[var(--zephira-primary)] text-[#111817] font-bold text-sm rounded-lg shadow-lg shadow-[var(--zephira-primary)]/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70 disabled:transform-none"
+            className="flex-1 md:flex-none px-8 py-3 bg-[#11d4c4] text-[#0a1615] font-black text-sm rounded-2xl shadow-lg shadow-[#11d4c4]/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
           >
-            {isLoading ? "Salvando..." : "Salvar Alterações"}
+            {isLoading ? "Processando..." : "Salvar Alterações"}
           </button>
         </div>
+      </header>
+
+      {/* 2. Custom Tabs */}
+      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-white/5 rounded-2xl w-fit">
+        <TabButton
+          active={activeTab === "shipping"}
+          onClick={() => setActiveTab("shipping")}
+          icon="local_shipping"
+          label="Regras de Envio"
+        />
+        <TabButton
+          active={activeTab === "taxes"}
+          onClick={() => setActiveTab("taxes")}
+          icon="account_balance_wallet"
+          label="Configurações Fiscais"
+        />
       </div>
 
-      {/* 2. Tabs Section */}
-      <div className="border-b border-gray-200 dark:border-white/10">
-        <div className="flex gap-8">
-          <button
-            onClick={() => setActiveTab("shipping")}
-            className={`relative pb-4 group text-sm font-bold flex items-center gap-2 transition-colors ${
-              activeTab === "shipping"
-                ? "text-[var(--zephira-primary)]"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              local_shipping
-            </span>
-            Regras de Envio
-            {activeTab === "shipping" && (
-              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--zephira-primary)] rounded-full animate-in fade-in zoom-in duration-200"></div>
-            )}
-          </button>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* 3. Área de Conteúdo Principal */}
+        <main className="lg:col-span-8 space-y-6">
+          {activeTab === "shipping" ? (
+            <div className="space-y-6 animate-in slide-in-from-left-4 duration-500">
+              <SectionHeader title="Métodos de Entrega" badge="3 Ativos" />
 
-          <button
-            onClick={() => setActiveTab("taxes")}
-            className={`relative pb-4 group text-sm font-bold flex items-center gap-2 transition-colors ${
-              activeTab === "taxes"
-                ? "text-[var(--zephira-primary)]"
-                : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-            }`}
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              account_balance_wallet
-            </span>
-            Configurações Fiscais
-            {activeTab === "taxes" && (
-              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--zephira-primary)] rounded-full animate-in fade-in zoom-in duration-200"></div>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* 3. Content Area */}
-      {activeTab === "shipping" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {/* Left Column: Methods */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold flex items-center gap-2 text-[var(--zephira-text)] dark:text-white">
-                Métodos Ativos
-                <span className="bg-[var(--zephira-primary)]/10 text-[var(--zephira-primary)] text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full">
-                  Pro
-                </span>
-              </h3>
-              <button className="text-[var(--zephira-primary)] font-bold text-sm flex items-center gap-1 hover:underline">
-                <span className="material-symbols-outlined text-[18px]">
-                  add
-                </span>{" "}
-                Nova Taxa
-              </button>
-            </div>
-
-            {/* Card: Flat Rate */}
-            <div className="bg-white dark:bg-[#102220] rounded-xl p-6 shadow-sm border border-gray-200 dark:border-white/5 flex flex-col md:flex-row gap-6">
-              {/* Imagem Placeholder */}
-              <div className="w-full md:w-48 h-32 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">
-                  local_shipping
-                </span>
-              </div>
-
-              <div className="flex-1 w-full">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="text-lg font-bold text-[var(--zephira-text)] dark:text-white">
-                      Taxa Fixa Padrão
-                    </h4>
-                    <p className="text-sm text-[var(--zephira-muted)] mt-1">
-                      Entrega confiável de 3-5 dias para itens pequenos.
-                    </p>
+              {/* Card de Taxa Fixa */}
+              <div className="bg-white dark:bg-[#102220] rounded-3xl p-8 border border-slate-200 dark:border-white/5 shadow-sm group">
+                <div className="flex flex-col md:flex-row gap-8">
+                  <div className="size-20 rounded-2xl bg-[#11d4c4]/10 text-[#11d4c4] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                    <span className="material-symbols-outlined text-4xl">
+                      local_shipping
+                    </span>
                   </div>
-                  <div className="flex items-center h-6">
-                    {/* Toggle Switch Mock */}
-                    <div className="w-10 h-5 bg-[var(--zephira-primary)] rounded-full relative cursor-pointer shadow-inner">
-                      <div className="absolute right-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></div>
+
+                  <div className="flex-1 space-y-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h4 className="text-xl font-black text-slate-900 dark:text-white">
+                          Taxa Fixa Padrão
+                        </h4>
+                        <p className="text-sm text-slate-500 mt-1">
+                          Ideal para entregas domésticas com rastreamento.
+                        </p>
+                      </div>
+                      <ToggleButton active={true} />
                     </div>
-                  </div>
-                </div>
 
-                <div className="mt-6 flex flex-wrap gap-4 items-center">
-                  <div className="flex-1 min-w-[120px]">
-                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
-                      Custo Base
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
-                        R$
-                      </span>
-                      <input
-                        className="w-full pl-9 py-2 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-[var(--zephira-primary)] focus:border-transparent outline-none transition-all font-bold text-[var(--zephira-text)] dark:text-white"
-                        type="number"
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <PricingInput
+                        label="Custo da Remessa"
                         value={flatRatePrice}
-                        onChange={(e) => setFlatRatePrice(e.target.value)}
+                        onChange={setFlatRatePrice}
                       />
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-[120px]">
-                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
-                      Taxa Manuseio
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
-                        R$
-                      </span>
-                      <input
-                        className="w-full pl-9 py-2 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-[var(--zephira-primary)] focus:border-transparent outline-none transition-all font-bold text-[var(--zephira-text)] dark:text-white"
-                        type="number"
+                      <PricingInput
+                        label="Taxa de Manuseio"
                         value={handlingFee}
-                        onChange={(e) => setHandlingFee(e.target.value)}
+                        onChange={setHandlingFee}
                       />
                     </div>
                   </div>
-                  <button className="p-2 text-gray-400 hover:text-red-500 transition-colors mt-4 bg-gray-50 dark:bg-white/5 rounded-lg">
-                    <span className="material-symbols-outlined text-[20px]">
-                      delete
-                    </span>
-                  </button>
                 </div>
               </div>
-            </div>
 
-            {/* Card: Weight Based */}
-            <div className="bg-white dark:bg-[#102220] rounded-xl p-6 shadow-sm border border-gray-200 dark:border-white/5 flex flex-col md:flex-row gap-6 border-l-4 border-l-[var(--zephira-primary)]/40">
-              <div className="w-full md:w-48 h-32 rounded-lg bg-gray-100 dark:bg-white/5 flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">
-                  scale
-                </span>
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
+              {/* Card por Peso */}
+              <div className="bg-white dark:bg-[#102220] rounded-3xl p-8 border border-slate-200 dark:border-white/5 shadow-sm opacity-60 grayscale hover:grayscale-0 hover:opacity-100 transition-all cursor-not-allowed">
+                <div className="flex items-center gap-6">
+                  <div className="size-16 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400">
+                    <span className="material-symbols-outlined text-3xl">
+                      scale
+                    </span>
+                  </div>
                   <div>
-                    <h4 className="text-lg font-bold text-[var(--zephira-text)] dark:text-white">
-                      Envio por Peso
+                    <h4 className="font-bold text-slate-900 dark:text-white">
+                      Envio por Peso (Em breve)
                     </h4>
-                    <p className="text-sm text-[var(--zephira-muted)] mt-1">
-                      Recomendado para pedidos de alto volume ou atacado.
+                    <p className="text-xs text-slate-500">
+                      Cálculo baseado no peso total do carrinho.
                     </p>
                   </div>
-                  <div className="flex items-center h-6">
-                    <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded-full relative cursor-pointer">
-                      <div className="absolute left-1 top-1 w-3 h-3 bg-white rounded-full shadow-sm"></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 p-3 bg-[var(--zephira-primary)]/5 rounded-lg border border-[var(--zephira-primary)]/10">
-                  <p className="text-xs text-[var(--zephira-primary)] font-medium italic flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[16px]">
-                      info
+                  <div className="ml-auto">
+                    <span className="text-[10px] font-black uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full">
+                      Bloqueado
                     </span>
-                    "Ideal para proteção de remessas pesadas durante o
-                    trânsito."
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Settings Summary */}
-          <div className="space-y-6">
-            <div className="bg-white dark:bg-[#102220] rounded-xl p-6 shadow-sm border border-gray-200 dark:border-white/5">
-              <h4 className="font-bold text-sm mb-4 uppercase tracking-wider text-gray-400">
-                Visão Geral Global
-              </h4>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm text-[var(--zephira-text)] dark:text-white">
-                  <span className="opacity-70">Preço com Imposto Incluso</span>
-                  <div className="w-8 h-4 bg-[var(--zephira-primary)] rounded-full relative cursor-pointer">
-                    <div className="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full shadow-sm"></div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-sm text-[var(--zephira-text)] dark:text-white">
-                  <span className="opacity-70">Unidade de Peso</span>
-                  <select className="bg-transparent border-none py-0 pl-0 pr-6 text-sm font-bold focus:ring-0 cursor-pointer text-right outline-none">
-                    <option>Gramas (g)</option>
-                    <option>Onças (oz)</option>
-                    <option>Quilogramas (kg)</option>
-                  </select>
-                </div>
-                <div className="flex items-center justify-between text-sm border-t border-gray-100 dark:border-white/5 pt-4 text-[var(--zephira-text)] dark:text-white">
-                  <span className="opacity-70">Zonas Ativas</span>
-                  <span className="font-bold">24 Regiões</span>
-                </div>
               </div>
             </div>
-
-            <div className="bg-[#111817] rounded-xl p-6 text-white overflow-hidden relative group shadow-lg">
-              <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
-                <span className="material-symbols-outlined text-8xl">
-                  public
-                </span>
+          ) : (
+            /* Tabela de Impostos */
+            <div className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden animate-in slide-in-from-right-4 duration-500">
+              <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2">
+                <h3 className="font-black text-lg">
+                  Tabela de Impostos Globais
+                </h3>
               </div>
-              <h4 className="font-bold text-lg mb-2 relative z-10">
-                Impostos Regionais
-              </h4>
-              <p className="text-xs text-gray-400 mb-4 relative z-10">
-                Configure VAT, GST e Sales Tax para clientes internacionais.
-              </p>
-              <button
-                onClick={() => setActiveTab("taxes")}
-                className="w-full py-2.5 bg-[var(--zephira-primary)] text-[#111817] font-bold text-sm rounded-lg hover:brightness-110 transition-colors relative z-10 shadow-lg shadow-[var(--zephira-primary)]/20"
-              >
-                Gerenciar Regiões
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Tax Tab Content */
-        <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-white dark:bg-[#102220] rounded-2xl shadow-sm border border-gray-200 dark:border-white/5 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/5 flex flex-wrap gap-4 justify-between items-center">
-              <h3 className="font-bold text-lg text-[var(--zephira-text)] dark:text-white">
-                Detalhamento Regional de Impostos
-              </h3>
-              <div className="flex gap-2">
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">
-                    file_download
-                  </span>
-                </button>
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg text-gray-500 dark:text-gray-400 transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">
-                    filter_list
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-gray-50 dark:bg-black/20 text-[10px] uppercase font-bold text-gray-400 tracking-widest border-b border-gray-200 dark:border-white/5">
+              <table className="w-full text-left text-sm">
+                <thead className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-white/5">
                   <tr>
-                    <th className="px-6 py-4">Região / País</th>
-                    <th className="px-6 py-4">Tipo de Taxa</th>
-                    <th className="px-6 py-4">Taxa (%)</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Ação</th>
+                    <th className="p-5 pl-8">País / Região</th>
+                    <th className="p-5">Tipo</th>
+                    <th className="p-5 text-center">Taxa (%)</th>
+                    <th className="p-5 text-right pr-8">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-white/5 text-sm">
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                   {taxRates.map((rate) => (
                     <tr
                       key={rate.id}
-                      className="hover:bg-gray-50/50 dark:hover:bg-white/5 transition-colors group"
+                      className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group"
                     >
-                      <td className="px-6 py-4 font-semibold text-[var(--zephira-text)] dark:text-white flex items-center gap-3">
-                        <span className="text-xl">{rate.flag}</span>
-                        {rate.country}
+                      <td className="p-5 pl-8 flex items-center gap-3">
+                        <span className="text-2xl filter drop-shadow-sm">
+                          {rate.flag}
+                        </span>
+                        <span className="font-bold text-slate-700 dark:text-slate-200">
+                          {rate.country}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 opacity-70 text-[var(--zephira-text)] dark:text-gray-300">
+                      <td className="p-5 text-slate-500 font-medium">
                         {rate.type}
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-1 w-24 bg-gray-100 dark:bg-black/20 border border-transparent focus-within:border-[var(--zephira-primary)] px-2 py-1 rounded transition-colors">
+                      <td className="p-5">
+                        <div className="mx-auto w-24 bg-slate-100 dark:bg-white/5 rounded-xl px-3 py-2 flex items-center border border-transparent focus-within:border-[#11d4c4] transition-all">
                           <input
-                            className="w-full bg-transparent border-none p-0 text-sm text-center focus:ring-0 outline-none font-mono font-bold text-[var(--zephira-text)] dark:text-white"
                             type="number"
                             value={rate.rate}
-                            onChange={(e) =>
-                              handleTaxChange(rate.id, e.target.value)
-                            }
+                            className="bg-transparent border-none p-0 w-full text-center font-black focus:ring-0"
                           />
-                          <span className="text-xs text-gray-500 font-bold">
+                          <span className="text-[10px] font-bold text-slate-400">
                             %
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="p-5 pr-8 text-right">
                         <button
-                          onClick={() => toggleTaxStatus(rate.id)}
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide transition-colors ${
+                          onClick={() =>
+                            setTaxRates((prev) =>
+                              prev.map((r) =>
+                                r.id === rate.id
+                                  ? { ...r, enabled: !r.enabled }
+                                  : r,
+                              ),
+                            )
+                          }
+                          className={cn(
+                            "px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                             rate.enabled
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-                              : "bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400"
-                          }`}
+                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                              : "bg-slate-100 text-slate-400",
+                          )}
                         >
-                          {rate.enabled ? "Ativo" : "Inativo"}
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button className="text-gray-400 hover:text-[var(--zephira-primary)] transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5">
-                          <span className="material-symbols-outlined text-[20px]">
-                            more_vert
-                          </span>
+                          {rate.enabled ? "Ativo" : "Pausado"}
                         </button>
                       </td>
                     </tr>
@@ -391,17 +232,127 @@ export default function ShippingPage() {
                 </tbody>
               </table>
             </div>
+          )}
+        </main>
 
-            <div className="px-6 py-4 bg-gray-50/50 dark:bg-black/20 flex items-center justify-center border-t border-gray-200 dark:border-white/5">
-              <button className="text-sm font-bold text-gray-500 hover:text-[var(--zephira-primary)] transition-colors flex items-center gap-2">
-                Ver todas as 42 Regiões
-                <span className="material-symbols-outlined text-sm">
-                  expand_more
-                </span>
-              </button>
+        {/* 4. Sidebar de Resumo */}
+        <aside className="lg:col-span-4 space-y-6">
+          <div className="bg-slate-900 dark:bg-[#11d4c4]/5 rounded-3xl p-8 text-white relative overflow-hidden group">
+            <h4 className="text-sm font-black uppercase tracking-widest text-[#11d4c4] mb-4">
+              Configuração Global
+            </h4>
+            <div className="space-y-4 relative z-10">
+              <SummaryItem label="Zonas de Envio" value="24 Ativas" />
+              <SummaryItem label="Moeda Base" value="BRL (R$)" />
+              <SummaryItem label="Preços com Impostos" value="Sim" toggle />
+              <SummaryItem label="Unidade de Peso" value="Gramas (g)" select />
+            </div>
+            <span className="material-symbols-outlined absolute -right-4 -bottom-4 text-white/[0.03] text-[120px] group-hover:scale-110 transition-transform duration-700">
+              public
+            </span>
+          </div>
+
+          <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-3xl p-6">
+            <div className="flex gap-3">
+              <span className="material-symbols-outlined text-amber-600">
+                info
+              </span>
+              <div>
+                <h5 className="font-bold text-amber-900 dark:text-amber-400 text-sm">
+                  Atenção Fiscal
+                </h5>
+                <p className="text-xs text-amber-700 dark:text-amber-500/80 mt-1 leading-relaxed">
+                  Alterações nas taxas de impostos podem levar até 10 minutos
+                  para serem propagadas no checkout global.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+// --- Sub-componentes Refinados ---
+
+function TabButton({ active, onClick, icon, label }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all",
+        active
+          ? "bg-white dark:bg-[#102220] text-[#11d4c4] shadow-sm"
+          : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
+      )}
+    >
+      <span className="material-symbols-outlined text-xl">{icon}</span>
+      {label}
+    </button>
+  );
+}
+
+function SectionHeader({ title, badge }: any) {
+  return (
+    <div className="flex items-center justify-between px-2">
+      <h3 className="text-xl font-black text-slate-900 dark:text-white">
+        {title}
+      </h3>
+      <span className="bg-[#11d4c4]/10 text-[#11d4c4] text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-widest">
+        {badge}
+      </span>
+    </div>
+  );
+}
+
+function PricingInput({ label, value, onChange }: any) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+        {label}
+      </label>
+      <div className="relative group">
+        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-sm">
+          R$
+        </span>
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full h-12 pl-10 pr-4 rounded-2xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all font-black text-slate-800 dark:text-white"
+        />
+      </div>
+    </div>
+  );
+}
+
+function ToggleButton({ active }: { active: boolean }) {
+  return (
+    <div
+      className={cn(
+        "w-12 h-6 rounded-full relative cursor-pointer transition-colors p-1",
+        active ? "bg-[#11d4c4]" : "bg-slate-200 dark:bg-slate-700",
+      )}
+    >
+      <div
+        className={cn(
+          "size-4 bg-white rounded-full shadow-sm transition-all",
+          active ? "translate-x-6" : "translate-x-0",
+        )}
+      />
+    </div>
+  );
+}
+
+function SummaryItem({ label, value, toggle, select }: any) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-none">
+      <span className="text-sm text-slate-400 font-medium">{label}</span>
+      {toggle ? (
+        <ToggleButton active={true} />
+      ) : (
+        <span className="text-sm font-black">{value}</span>
       )}
     </div>
   );

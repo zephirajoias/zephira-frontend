@@ -1,14 +1,15 @@
 "use client";
 
-import { DeleteCategoryModal } from "@/components/dashboard/categories/DeleteCategoryModal";
-import { EditCategoryModal } from "@/components/dashboard/categories/EditCategoryModal";
 import api from "@/lib/api";
+import { cn } from "@/lib/utils";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
-/* =======================
-   INTERFACES
-======================= */
+// Modais
+import { DeleteCategoryModal } from "@/components/dashboard/categories/DeleteCategoryModal";
+import { EditCategoryModal } from "@/components/dashboard/categories/EditCategoryModal";
+
+/* --- Interfaces --- */
 interface CategoriaDetalhes {
   CD_CATEGORIA: number;
   NM_CATEGORIA: string;
@@ -30,40 +31,28 @@ interface CategoriaPainel {
   TOTAL_CATEGORIAS_ATIVAS: number;
 }
 
-/* =======================
-   COMPONENTE
-======================= */
 export default function CategoriesPage() {
-  /* -------- STATES -------- */
-  const [painelCategorias, setPainelCategorias] = useState<CategoriaPainel[]>(
-    [],
-  );
-  const [detalhesCategoria, setDetalhesCategoria] = useState<
-    CategoriaDetalhes[]
-  >([]);
-  const [todosCategorias, setTodosCategorias] = useState<CategoriaTodos[]>([]);
-
-  const [nome, setNome] = useState("");
-  const [slug, setSlug] = useState("");
-  const [categoriaId, setCategoriaId] = useState("");
-  const [imagemFile, setImagemFile] = useState<File | null>(null);
+  const [painel, setPainel] = useState<CategoriaPainel | null>(null);
+  const [detalhes, setDetalhes] = useState<CategoriaDetalhes[]>([]);
+  const [todos, setTodos] = useState<CategoriaTodos[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Form States
+  const [form, setForm] = useState({
+    nome: "",
+    slug: "",
+    paiId: "",
+    imagem: null as File | null,
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState<{
-    key: keyof CategoriaDetalhes;
-    direction: "asc" | "desc";
-  } | null>(null);
+  // Modal States
+  const [modals, setModals] = useState({
+    edit: null as CategoriaDetalhes | null,
+    delete: null as CategoriaDetalhes | null,
+  });
 
-  const [editingCategory, setEditingCategory] =
-    useState<CategoriaDetalhes | null>(null);
-  const [deletingCategory, setDeletingCategory] =
-    useState<CategoriaDetalhes | null>(null);
-
-  /* =======================
-     FETCH
-  ======================= */
   const refreshData = async () => {
     try {
       const [resPainel, resDetalhes, resTodos] = await Promise.all([
@@ -71,11 +60,11 @@ export default function CategoriesPage() {
         api.get("admin/categoria-detalhes"),
         api.get("admin/buscaTodasCategorias"),
       ]);
-      setPainelCategorias(resPainel.data);
-      setDetalhesCategoria(resDetalhes.data);
-      setTodosCategorias(resTodos.data);
+      setPainel(resPainel.data[0]); // Pega o primeiro registro do painel
+      setDetalhes(resDetalhes.data);
+      setTodos(resTodos.data);
     } catch {
-      toast.error("Erro ao carregar categorias.");
+      toast.error("Erro ao sincronizar dados.");
     }
   };
 
@@ -83,343 +72,340 @@ export default function CategoriesPage() {
     refreshData();
   }, []);
 
-  /* =======================
-     HIERARQUIA
-  ======================= */
-  const organizarHierarquia = (categorias: CategoriaDetalhes[]) => {
-    const pais = categorias.filter((c) => !c.NM_CATEGORIA_PAI);
-    const filhos = categorias.filter((c) => c.NM_CATEGORIA_PAI);
-
-    const resultado: CategoriaDetalhes[] = [];
-
-    pais.forEach((pai) => {
-      resultado.push(pai);
-      filhos
-        .filter((f) => f.NM_CATEGORIA_PAI === pai.NM_CATEGORIA)
-        .forEach((f) => resultado.push(f));
-    });
-
-    return resultado;
-  };
-
-  /* =======================
-     FILTRO + SORT
-  ======================= */
-  const filteredAndSortedCategories = useMemo(() => {
-    let result = [...detalhesCategoria];
-
+  // Lógica de Hierarquia Visual
+  const hierarchicalCategories = useMemo(() => {
+    let result = detalhes;
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      result = result.filter((cat) => {
-        const nomeCompleto =
-          `${cat.NM_CATEGORIA_PAI ?? ""} ${cat.NM_CATEGORIA}`.toLowerCase();
-        return (
-          nomeCompleto.includes(term) ||
-          cat.DS_SLUG.toLowerCase().includes(term)
-        );
-      });
+      result = result.filter(
+        (cat) =>
+          cat.NM_CATEGORIA.toLowerCase().includes(term) ||
+          cat.DS_SLUG.toLowerCase().includes(term),
+      );
     }
 
-    if (sortConfig) {
-      result.sort((a, b) => {
-        const valA = a[sortConfig.key] ?? "";
-        const valB = b[sortConfig.key] ?? "";
-        if (valA < valB) return sortConfig.direction === "asc" ? -1 : 1;
-        if (valA > valB) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
+    const pais = result.filter((c) => !c.NM_CATEGORIA_PAI);
+    const filhos = result.filter((c) => c.NM_CATEGORIA_PAI);
+    const final: CategoriaDetalhes[] = [];
 
-    return organizarHierarquia(result);
-  }, [detalhesCategoria, searchTerm, sortConfig]);
+    pais.forEach((pai) => {
+      final.push(pai);
+      filhos
+        .filter((f) => f.NM_CATEGORIA_PAI === pai.NM_CATEGORIA)
+        .forEach((f) => final.push(f));
+    });
 
-  /* =======================
-     CREATE
-  ======================= */
-  const createCategoria = async (e: React.FormEvent) => {
+    return final;
+  }, [detalhes, searchTerm]);
+
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome || !slug) return toast.warn("Preencha nome e slug.");
+    if (!form.nome || !form.slug)
+      return toast.warn("Nome e Slug são obrigatórios.");
 
     setIsLoading(true);
     const formData = new FormData();
-    formData.append("NM_CATEGORIA", nome);
-    formData.append("DS_SLUG", slug);
+    formData.append("NM_CATEGORIA", form.nome);
+    formData.append("DS_SLUG", form.slug);
     formData.append("SN_ATIVO", "1");
-    if (categoriaId) formData.append("CD_CATEGORIA_PAI", categoriaId);
-    if (imagemFile) formData.append("file", imagemFile);
+    if (form.paiId) formData.append("CD_CATEGORIA_PAI", form.paiId);
+    if (form.imagem) formData.append("file", form.imagem);
 
     try {
       await api.post("admin/create-categoria", formData);
-      toast.success("Categoria criada!");
-      setNome("");
-      setSlug("");
-      setCategoriaId("");
-      setImagemFile(null);
+      toast.success("Categoria criada com sucesso!");
+      setForm({ nome: "", slug: "", paiId: "", imagem: null });
       if (fileInputRef.current) fileInputRef.current.value = "";
       refreshData();
     } catch {
-      toast.error("Erro ao criar categoria.");
+      toast.error("Erro ao processar criação.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  /* =======================
-     RENDER
-  ======================= */
   return (
-    <div className="max-w-[1400px] mx-auto flex flex-col gap-6 pb-10">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-8 pb-10 animate-in fade-in duration-500">
+      {/* Modais */}
       <EditCategoryModal
-        isOpen={!!editingCategory}
-        onClose={() => setEditingCategory(null)}
-        category={editingCategory}
+        isOpen={!!modals.edit}
+        onClose={() => setModals({ ...modals, edit: null })}
+        category={modals.edit}
         onSuccess={refreshData}
       />
       <DeleteCategoryModal
-        isOpen={!!deletingCategory}
-        onClose={() => setDeletingCategory(null)}
-        category={deletingCategory}
+        isOpen={!!modals.delete}
+        onClose={() => setModals({ ...modals, delete: null })}
+        category={modals.delete}
         onSuccess={refreshData}
       />
 
-      {/* HEADER */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl md:text-4xl font-black tracking-tight text-[var(--zephira-text)] dark:text-white">
-          Categorias
-        </h1>
-        <p className="text-[var(--zephira-muted)] text-base font-medium">
-          Gerencie a taxonomia e organização dos seus produtos.
-        </p>
-      </div>
+      {/* 1. Header & Stats */}
+      <header className="flex flex-col gap-6">
+        <div>
+          <h1 className="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+            Categorias
+          </h1>
+          <p className="text-slate-500 font-medium">
+            Organize a taxonomia da sua loja e melhore o SEO.
+          </p>
+        </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* =====================
-            FORMULÁRIO (ESQUERDA)
-        ===================== */}
-        <div className="lg:col-span-1 h-fit bg-white dark:bg-[#102220] rounded-xl border border-gray-200 dark:border-white/5 shadow-sm p-6 sticky top-6">
-          <h3 className="text-lg font-bold text-[var(--zephira-text)] dark:text-white mb-6 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[var(--zephira-primary)]">
-              add_circle
-            </span>
-            Nova Categoria
-          </h3>
-          <form className="flex flex-col gap-5" onSubmit={createCategoria}>
-            <InputField
-              label="Nome da Categoria"
-              value={nome}
-              onChange={setNome}
-              placeholder="Ex: Brincos"
-            />
-            <InputField
-              label="Slug (URL)"
-              value={slug}
-              onChange={setSlug}
-              placeholder="Ex: brincos-ouro"
-            />
+        {/* <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <StatCard
+            title="Total Categorias"
+            value={painel?.TOTAL_CATEGORIAS || 0}
+            icon="category"
+            trend="Estrutura"
+            trendLabel=""
+          />
+          <StatCard
+            title="Produtos Vinculados"
+            value={painel?.TOTAL_PRODUTOS || 0}
+            icon="inventory_2"
+            trend="Catálogo"
+            trendLabel=""
+          />
+          <StatCard
+            title="Ativas no Site"
+            value={painel?.TOTAL_CATEGORIAS_ATIVAS || 0}
+            icon="visibility"
+            trend="Visíveis"
+            trendLabel=""
+          />
+        </div> */}
+      </header>
 
-            <div className="group">
-              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
-                Categoria Pai
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* 2. Formulário Lateral (Sticky) */}
+        <aside className="lg:col-span-4 sticky top-6 bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm p-8 flex flex-col gap-6">
+          <div className="flex items-center gap-2">
+            <div className="size-8 rounded-lg bg-[#11d4c4]/20 text-[#11d4c4] flex items-center justify-center">
+              <span className="material-symbols-outlined text-xl">add_box</span>
+            </div>
+            <h3 className="text-lg font-black tracking-tight">
+              Nova Categoria
+            </h3>
+          </div>
+
+          <form onSubmit={handleCreate} className="space-y-5">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                Nome
               </label>
-              <div className="relative">
-                <select
-                  value={categoriaId}
-                  onChange={(e) => setCategoriaId(e.target.value)}
-                  className="w-full h-11 appearance-none rounded-lg border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 px-4 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[var(--zephira-primary)] transition-all cursor-pointer"
-                >
-                  <option value="">Nenhuma (Categoria Principal)</option>
-                  {todosCategorias.map((c) => (
-                    <option key={c.CD_CATEGORIA} value={c.CD_CATEGORIA}>
-                      {c.NM_CATEGORIA_DISPLAY}
-                    </option>
-                  ))}
-                </select>
-                <span className="material-symbols-outlined absolute right-3 top-2.5 text-gray-400 pointer-events-none">
-                  expand_more
-                </span>
-              </div>
+              <input
+                className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-white/5 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none"
+                placeholder="Ex: Anéis de Noivado"
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+              />
             </div>
 
-            {/* Upload de Imagem Personalizado */}
-            <div>
-              <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                URL amigável (Slug)
+              </label>
+              <input
+                className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-white/5 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-mono text-xs"
+                placeholder="aneis-de-noivado"
+                value={form.slug}
+                onChange={(e) => setForm({ ...form, slug: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                Hierarquia (Pai)
+              </label>
+              <select
+                className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-white/5 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none cursor-pointer"
+                value={form.paiId}
+                onChange={(e) => setForm({ ...form, paiId: e.target.value })}
+              >
+                <option value="">Nenhuma (Principal)</option>
+                {todos.map((c) => (
+                  <option key={c.CD_CATEGORIA} value={c.CD_CATEGORIA}>
+                    {c.NM_CATEGORIA_DISPLAY}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
                 Imagem de Capa
               </label>
               <label
-                className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer group ${imagemFile ? "border-[var(--zephira-primary)] bg-[var(--zephira-primary)]/5" : "border-gray-300 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5"}`}
+                className={cn(
+                  "border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all group",
+                  form.imagem
+                    ? "border-[#11d4c4] bg-[#11d4c4]/5"
+                    : "border-slate-200 dark:border-white/10 hover:border-[#11d4c4]/50",
+                )}
               >
                 <span
-                  className={`material-symbols-outlined mb-2 text-3xl transition-colors ${imagemFile ? "text-[var(--zephira-primary)]" : "text-gray-400 group-hover:text-[var(--zephira-primary)]"}`}
+                  className={cn(
+                    "material-symbols-outlined text-3xl mb-2",
+                    form.imagem ? "text-[#11d4c4]" : "text-slate-300",
+                  )}
                 >
-                  {imagemFile ? "check_circle" : "cloud_upload"}
+                  {form.imagem ? "cloud_done" : "add_photo_alternate"}
                 </span>
-                <p
-                  className={`text-sm font-bold ${imagemFile ? "text-[var(--zephira-primary)]" : "text-gray-500 dark:text-gray-400"}`}
-                >
-                  {imagemFile ? imagemFile.name : "Clique para anexar imagem"}
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                  {form.imagem ? form.imagem.name : "Clique para carregar"}
                 </p>
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
                   className="hidden"
-                  onChange={(e) => setImagemFile(e.target.files?.[0] || null)}
+                  onChange={(e) =>
+                    setForm({ ...form, imagem: e.target.files?.[0] || null })
+                  }
                 />
               </label>
             </div>
 
             <button
-              disabled={isLoading || !nome || !slug}
-              className="w-full h-11 bg-[var(--zephira-primary)] hover:bg-[var(--zephira-primary)]/90 text-[#0f1715] font-bold shadow-lg shadow-[var(--zephira-primary)]/20 transition-all flex items-center justify-center gap-2 rounded-lg mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading}
+              className="w-full h-12 rounded-2xl bg-[#11d4c4] text-[#0a1615] font-black shadow-lg shadow-[#11d4c4]/20 hover:scale-[1.02] transition-all disabled:opacity-50 mt-4"
             >
-              {isLoading ? (
-                "Salvando..."
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-[20px]">
-                    check
-                  </span>{" "}
-                  Criar Categoria
-                </>
-              )}
+              {isLoading ? "Salvando..." : "Salvar Categoria"}
             </button>
           </form>
-        </div>
+        </aside>
 
-        {/* =====================
-            TABELA (DIREITA)
-        ===================== */}
-        <div className="lg:col-span-3 bg-white dark:bg-[#102220] rounded-xl border border-gray-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col">
-          {/* Header & Filtro da Tabela */}
-          <div className="p-4 border-b border-gray-200 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 bg-gray-50/50 dark:bg-black/20">
-            <h3 className="font-bold text-[var(--zephira-text)] dark:text-white">
-              Estrutura de Categorias
-            </h3>
+        {/* 3. Tabela de Categorias */}
+        <section className="lg:col-span-8 bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-slate-100 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50 dark:bg-white/2">
+            <h3 className="font-black text-lg">Árvore de Categorias</h3>
             <div className="relative w-full sm:max-w-xs">
-              <span className="material-symbols-outlined absolute left-3 top-2.5 text-[var(--zephira-muted)]">
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
                 search
               </span>
               <input
-                className="w-full h-11 pl-10 pr-4 rounded-lg bg-white dark:bg-[#0b1816] border border-gray-200 dark:border-white/5 focus:border-[var(--zephira-primary)] text-sm text-[var(--zephira-text)] dark:text-white outline-none transition-all shadow-sm"
-                placeholder="Buscar categoria..."
+                className="w-full h-10 pl-10 pr-4 rounded-xl bg-white dark:bg-black/20 border-none text-sm focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none"
+                placeholder="Filtrar..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
 
-          {/* Table Container */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto text-sm">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-gray-50 dark:bg-[#0b1816] border-b border-gray-200 dark:border-white/5 text-[var(--zephira-muted)] text-xs uppercase">
-                  <th className="px-6 py-4 font-bold tracking-wider">
-                    Categoria
-                  </th>
-                  <th className="px-6 py-4 font-bold tracking-wider">Slug</th>
-                  <th className="px-6 py-4 font-bold tracking-wider text-center">
-                    Itens
-                  </th>
-                  <th className="px-6 py-4 font-bold tracking-wider text-right">
-                    Ações
-                  </th>
+                <tr className="bg-slate-50/50 dark:bg-white/2 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                  <th className="p-5 pl-8">Nome da Categoria</th>
+                  <th className="p-5">Slug / URL</th>
+                  <th className="p-5 text-center">Produtos</th>
+                  <th className="p-5 text-center">Status</th>
+                  <th className="p-5 text-right pr-8">Ação</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                {filteredAndSortedCategories.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={4}
-                      className="p-8 text-center text-[var(--zephira-muted)] font-medium"
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                {hierarchicalCategories.map((cat) => {
+                  const isSub = !!cat.NM_CATEGORIA_PAI;
+                  return (
+                    <tr
+                      key={cat.CD_CATEGORIA}
+                      className="group hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors"
                     >
-                      Nenhuma categoria encontrada.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredAndSortedCategories.map((cat) => {
-                    const isSub = !!cat.NM_CATEGORIA_PAI;
-                    return (
-                      <tr
-                        key={cat.CD_CATEGORIA}
-                        className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group"
-                      >
-                        <td className={`px-6 py-4 ${isSub ? "pl-14" : ""}`}>
-                          <div className="flex items-center gap-3">
-                            {isSub && (
-                              <span className="material-symbols-outlined text-[var(--zephira-muted)]">
-                                subdirectory_arrow_right
-                              </span>
-                            )}
-                            <div>
-                              <strong
-                                className={`block text-sm font-bold ${isSub ? "text-gray-600 dark:text-gray-300" : "text-[var(--zephira-text)] dark:text-white"}`}
-                              >
-                                {cat.NM_CATEGORIA}
-                              </strong>
-                              {isSub && (
-                                <span className="text-xs text-[var(--zephira-muted)] bg-gray-100 dark:bg-white/10 px-1.5 py-0.5 rounded">
-                                  Pai: {cat.NM_CATEGORIA_PAI}
-                                </span>
+                      <td className={cn("p-5 pl-8", isSub && "pl-14 relative")}>
+                        {isSub && (
+                          <div className="absolute left-8 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-slate-300 text-lg">
+                              subdirectory_arrow_right
+                            </span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3">
+                          {/* <div className="size-10 rounded-lg bg-slate-100 relative overflow-hidden flex-shrink-0 border border-slate-200 dark:border-white/10 shadow-sm">
+                            <img
+                              src={cat.DS_URL_IMAGEM || "/placeholder.png"}
+                              alt=""
+                              className="object-cover w-full h-full"
+                            />
+                          </div> */}
+                          <div>
+                            <p
+                              className={cn(
+                                "font-black text-slate-900 dark:text-white",
+                                isSub ? "text-sm" : "text-base",
                               )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 font-mono text-xs text-[var(--zephira-muted)]">
-                          {cat.DS_SLUG}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 dark:bg-white/10 text-[var(--zephira-text)] dark:text-white">
-                            {cat.QT_PRODUTOS}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button
-                              onClick={() => setEditingCategory(cat)}
-                              className="p-2 text-[var(--zephira-muted)] hover:text-[var(--zephira-primary)] hover:bg-[var(--zephira-primary)]/10 rounded-lg transition-colors"
-                              title="Editar"
                             >
-                              <span className="material-symbols-outlined text-[20px]">
-                                edit
-                              </span>
-                            </button>
-                            <button
-                              onClick={() => setDeletingCategory(cat)}
-                              className="p-2 text-[var(--zephira-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                              title="Excluir"
-                            >
-                              <span className="material-symbols-outlined text-[20px]">
-                                delete
-                              </span>
-                            </button>
+                              {cat.NM_CATEGORIA}
+                            </p>
+                            {isSub && (
+                              <p className="text-[10px] font-bold text-slate-400 uppercase">
+                                Pai: {cat.NM_CATEGORIA_PAI}
+                              </p>
+                            )}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
+                        </div>
+                      </td>
+                      <td className="p-5 font-mono text-xs text-slate-400">
+                        {cat.DS_SLUG}
+                      </td>
+                      <td className="p-5 text-center">
+                        <span className="font-black bg-slate-100 dark:bg-white/5 px-3 py-1 rounded-lg text-slate-500">
+                          {cat.QT_PRODUTOS}
+                        </span>
+                      </td>
+                      <td className="p-5 text-center">
+                        <StatusBadge active={cat.SN_ATIVO === 1} />
+                      </td>
+                      <td className="p-5 pr-8 text-right">
+                        <div className="flex justify-end gap-2 lg:opacity-0 group-hover:opacity-100 transition-all">
+                          <button
+                            onClick={() => setModals({ ...modals, edit: cat })}
+                            className="p-2 hover:bg-[#11d4c4]/10 text-[#11d4c4] rounded-lg"
+                          >
+                            <span className="material-symbols-outlined text-xl">
+                              edit
+                            </span>
+                          </button>
+                          <button
+                            onClick={() =>
+                              setModals({ ...modals, delete: cat })
+                            }
+                            className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg"
+                          >
+                            <span className="material-symbols-outlined text-xl">
+                              delete
+                            </span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
 }
 
-/* =======================
-   COMPONENTES AUX
-======================= */
-const InputField = ({ label, value, onChange, placeholder }: any) => (
-  <div className="group">
-    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
-      {label}
-    </label>
-    <input
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full h-11 rounded-lg border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 px-4 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[var(--zephira-primary)] transition-all"
-    />
-  </div>
-);
+// Componentes Auxiliares Refinados
+function StatusBadge({ active }: { active: boolean }) {
+  return (
+    <div
+      className={cn(
+        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider",
+        active
+          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+      )}
+    >
+      <span
+        className={cn(
+          "size-1.5 rounded-full",
+          active ? "bg-emerald-500" : "bg-red-500",
+        )}
+      />
+      {active ? "Ativa" : "Oculta"}
+    </div>
+  );
+}

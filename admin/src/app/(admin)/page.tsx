@@ -1,360 +1,312 @@
 "use client";
+
 import { StatCard } from "@/components/dashboard/StatCard";
 import { usePedidosRecentes } from "@/contexts/PedidosRecentesContext";
 import { useUserData } from "@/hooks/useUserData";
 import api from "@/lib/api";
+import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-interface pedidosRecentes {
-  id: string;
-  produto: string;
-  usuario: string;
-  data: string;
-  valor: string;
-  status: string;
-  cor: string;
+// --- Interfaces Melhoradas ---
+interface DashboardKPIs {
+  vendas: { valorAtual: string; porcentagem: string };
+  pedidos: { quantidade: string; porcentagem: string };
+  clientes: { total: string; porcentagem: string };
+  estoque: { alertas: string };
 }
 
-interface estoqueBaixo {
+interface EstoqueBaixo {
   NM_PRODUTO: string;
   CD_SKU: string;
   QT_ESTOQUE: string;
   DS_IMAGEM_THUMB: string;
 }
 
-interface produtoMaisVendidoProps {
+interface ProdutoMaisVendido {
   NM_PRODUTO: string;
   qt_vendida: string;
 }
 
-export default function HomePage() {
-  const [totalVendas, setTotalVendas] = useState("");
-  const [porcentagemVendas, setPorcentagemVendas] = useState("");
-  const [totalPedidos, setTotalPedidos] = useState("");
-  const [porcentagemPedidos, setPorcentagemPedidos] = useState("");
-  const [totalClientes, setTotalClientes] = useState("");
-  const [porcentagemClientes, setPorcentagemClientes] = useState("");
-  const [totalAlertas, setTotalAlertas] = useState("");
-  const { pedidosRecentesData, loading } = usePedidosRecentes();
-  const [estoqueBaixoData, setEstoqueBaixoData] = useState<estoqueBaixo[]>([]);
-  const [produtoMaisVendido, setProdutoMaisVendido] =
-    useState<produtoMaisVendidoProps | null>(null);
+// Utilitário de formatação (Pode ir para /lib/utils.ts)
+const formatCurrency = (value: string | number) => {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "R$ 0,00";
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(num);
+};
 
+export default function HomePage() {
   const router = useRouter();
   const { name } = useUserData();
+  const { pedidosRecentesData, loading: loadingPedidos } = usePedidosRecentes();
 
-  const fetchTotalVendas = async () => {
+  // Estados Agrupados
+  const [kpis, setKpis] = useState<DashboardKPIs | null>(null);
+  const [estoqueBaixo, setEstoqueBaixo] = useState<EstoqueBaixo[]>([]);
+  const [maisVendido, setMaisVendido] = useState<ProdutoMaisVendido | null>(
+    null,
+  );
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchData = async () => {
+    setIsLoading(true);
     try {
-      const response = await api.get("/admin/painel");
-      console.log(response.data);
-      setTotalVendas(response.data.dashboard.vendas.valorAtual);
-      setPorcentagemVendas(
-        response.data.dashboard.vendas.porcentagemCrescimento,
-      );
-      setTotalPedidos(response.data.dashboard.pedidos.quantidadeHoje);
-      setPorcentagemPedidos(
-        response.data.dashboard.pedidos.porcentagemCrescimento,
-      );
-      setTotalClientes(response.data.dashboard.clientes.totalAtivos);
-      setPorcentagemClientes(response.data.dashboard.clientes.porcentagemNovos);
-      setTotalAlertas(response.data.dashboard.estoque.alertas);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+      // Dispara todas as chamadas em paralelo
+      const [resPainel, resEstoque, resMaisVendido] = await Promise.all([
+        api.get("/admin/painel"),
+        api.get("/admin/estoque-baixo"),
+        api.get("/admin/produto-mais-vendido"),
+      ]);
 
-  const estoqueBaixo = async () => {
-    try {
-      const response = await api.get("/admin/estoque-baixo");
-      return response.data;
+      const d = resPainel.data.dashboard;
+      setKpis({
+        vendas: {
+          valorAtual: d.vendas.valorAtual,
+          porcentagem: d.vendas.porcentagemCrescimento,
+        },
+        pedidos: {
+          quantidade: d.pedidos.quantidadeHoje,
+          porcentagem: d.pedidos.porcentagemCrescimento,
+        },
+        clientes: {
+          total: d.clientes.totalAtivos,
+          porcentagem: d.clientes.porcentagemNovos,
+        },
+        estoque: { alertas: d.estoque.alertas },
+      });
+      setEstoqueBaixo(resEstoque.data);
+      setMaisVendido(resMaisVendido.data);
     } catch (err) {
-      console.log(err);
+      console.error("Erro ao carregar dashboard:", err);
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const produtoMaisVendidoFunc = async () => {
-    try {
-      const response = await api.get("/admin/produto-mais-vendido");
-      return response.data;
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  const handleEstoque = () => {
-    router.push("/inventario");
   };
 
   useEffect(() => {
-    const loadDashboard = async () => {
-      await fetchTotalVendas();
-      setEstoqueBaixoData(await estoqueBaixo());
-      setProdutoMaisVendido(await produtoMaisVendidoFunc());
-    };
-
-    loadDashboard();
+    fetchData();
   }, []);
 
   return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-8 pb-10">
-      {/* 1. Page Heading */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-8 pb-10 animate-in fade-in duration-500">
+      {/* 1. Heading - Mais limpo */}
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-[var(--zephira-text)] dark:text-white tracking-tight">
-            Olá, {name}
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Olá,{" "}
+            <span className="text-[var(--zephira-primary)]">
+              {name?.split(" ")[0]}
+            </span>
           </h1>
-          <p className="text-[var(--zephira-muted)] mt-1">
-            Aqui está o desempenho da Zephira hoje.
+          <p className="text-slate-500 dark:text-slate-400 mt-1">
+            Aqui está o que está acontecendo na sua loja hoje.
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="px-4 py-2 bg-white dark:bg-[var(--zephira-dark)] border border-gray-200 dark:border-white/10 rounded-lg text-sm font-bold text-[var(--zephira-text)] dark:text-white hover:bg-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">
-              download
-            </span>{" "}
+          <button className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold hover:bg-slate-50 transition-all shadow-sm">
+            <span className="material-symbols-outlined text-lg">download</span>{" "}
             Exportar
           </button>
-          <button className="px-4 py-2 bg-[var(--zephira-primary)] hover:brightness-105 text-white rounded-lg text-sm font-bold transition-all shadow-md shadow-[var(--zephira-primary)]/20 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">add</span>{" "}
-            Nova Joia
+          <button className="flex items-center gap-2 px-4 py-2.5 bg-[#11d4c4] text-white rounded-xl text-sm font-bold hover:brightness-105 transition-all shadow-lg shadow-[#11d4c4]/20">
+            <span className="material-symbols-outlined text-lg">add</span> Nova
+            Joia
           </button>
         </div>
-      </div>
+      </header>
 
-      {/* 2. KPI Cards Grid */}
+      {/* 2. KPI Cards - Renderização condicional para evitar 'undefined' */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Vendas Totais"
-          value={totalVendas}
-          trend={`+${porcentagemVendas}%`}
+          value={formatCurrency(kpis?.vendas.valorAtual || 0)}
+          trend={`+${kpis?.vendas.porcentagem}%`}
           trendLabel="vs mês anterior"
           icon="payments"
         />
         <StatCard
           title="Novos Pedidos"
-          value={totalPedidos}
-          trend={`+${porcentagemPedidos}%`}
+          value={kpis?.pedidos.quantidade || "0"}
+          trend={`+${kpis?.pedidos.porcentagem}%`}
           trendLabel="vs ontem"
           icon="shopping_cart"
         />
         <StatCard
           title="Clientes Ativos"
-          value={totalClientes}
-          trend={`+${porcentagemClientes}%`}
-          trendLabel="agora"
-          icon="person"
+          value={kpis?.clientes.total || "0"}
+          trend={`+${kpis?.clientes.porcentagem}%`}
+          trendLabel="novos"
+          icon="group"
         />
         <StatCard
           title="Alertas de Estoque"
-          value={totalAlertas}
+          value={kpis?.estoque.alertas || "0"}
           trend="Urgente"
-          trendLabel="reposição necessária"
+          trendLabel="itens baixos"
           icon="warning"
-          isWarning
+          isWarning={Number(kpis?.estoque.alertas) > 0}
         />
       </div>
 
-      {/* 3. Main Chart Section */}
-      <div className="bg-white dark:bg-[var(--zephira-dark)] rounded-xl border border-gray-200 dark:border-white/5 shadow-sm p-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <div>
-            <h3 className="text-lg font-bold text-[var(--zephira-text)] dark:text-white">
-              Análise de Receita
-            </h3>
-            <p className="text-[var(--zephira-muted)] text-sm">
-              Desempenho mensal de vendas
-            </p>
-          </div>
-          {/* Chart Period Selector could be a component */}
-        </div>
-        <div className="w-full h-64 relative overflow-hidden">
-          {/* Mantive o SVG para performance, boa escolha */}
-          <svg
-            className="w-full h-full"
-            preserveAspectRatio="none"
-            viewBox="0 0 1000 300"
-          >
-            <defs>
-              <linearGradient id="chartGradient" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor="#11d4c4" stopOpacity="0.2"></stop>
-                <stop offset="100%" stopColor="#11d4c4" stopOpacity="0"></stop>
-              </linearGradient>
-            </defs>
-            <path
-              d="M0,250 C100,200 200,220 300,150 C400,80 500,120 600,90 C700,60 800,100 900,50 L1000,80 L1000,300 L0,300 Z"
-              fill="url(#chartGradient)"
-            ></path>
-            <path
-              d="M0,250 C100,200 200,220 300,150 C400,80 500,120 600,90 C700,60 800,100 900,50 L1000,80"
-              fill="none"
-              stroke="#11d4c4"
-              strokeLinecap="round"
-              strokeWidth="3"
-            ></path>
-          </svg>
-        </div>
-      </div>
-
-      {/* 4. Split Section */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Recent Orders */}
-        <div className="xl:col-span-2 bg-white dark:bg-[var(--zephira-dark)] rounded-xl border border-gray-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col">
-          <div className="p-6 border-b border-gray-200 dark:border-white/5 flex justify-between items-center">
-            <h3 className="text-lg font-bold text-[var(--zephira-text)] dark:text-white">
-              Pedidos Recentes
-            </h3>
-            <a
-              href="#"
-              className="text-[var(--zephira-primary)] text-sm font-bold hover:underline"
-            >
-              Ver Todos
-            </a>
+        {/* 3. Tabela de Pedidos - Mais robusta */}
+        <section className="xl:col-span-2 bg-white dark:bg-[#102220] rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+            <h3 className="font-bold text-lg">Pedidos Recentes</h3>
+            <button className="text-[#11d4c4] text-sm font-bold hover:underline">
+              Ver relatório completo
+            </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 dark:bg-white/5 text-[var(--zephira-muted)] text-xs uppercase tracking-wider">
-                  <th className="p-4 font-bold">ID Pedido</th>
-                  <th className="p-4 font-bold">Produto</th>
-                  <th className="p-4 font-bold">Data</th>
-                  <th className="p-4 font-bold">Valor</th>
-                  <th className="p-4 font-bold">Status</th>
+          <div className="overflow-x-auto text-sm">
+            <table className="w-full border-collapse">
+              <thead className="bg-slate-50 dark:bg-white/5 text-slate-500 text-[11px] uppercase tracking-widest font-bold">
+                <tr>
+                  <th className="p-4 text-left">ID</th>
+                  <th className="p-4 text-left">Produto / Cliente</th>
+                  <th className="p-4 text-left">Data</th>
+                  <th className="p-4 text-left">Valor</th>
+                  <th className="p-4 text-left">Status</th>
                 </tr>
               </thead>
-              <tbody className="text-sm divide-y divide-gray-100 dark:divide-white/5">
-                {pedidosRecentesData.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                  >
-                    <td className="p-4 font-medium text-[var(--zephira-text)] dark:text-white">
-                      {order.id}
-                    </td>
-                    <td className="p-4">
-                      <div>
-                        <p className="font-medium text-[var(--zephira-text)] dark:text-white">
-                          {order.produto}
-                        </p>
-                        <p className="text-xs text-[var(--zephira-muted)]">
-                          {order.usuario}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="p-4 text-[var(--zephira-muted)]">
-                      {order.data}
-                    </td>
-                    <td className="p-4 font-bold text-[var(--zephira-text)] dark:text-white">
-                      {order.valor}
-                    </td>
-                    <td className="p-4">
-                      {/* Badge lógico simplificado - classes poderiam ser extraídas */}
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold 
-                        ${
-                          order.cor === "yellow"
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200"
-                            : ""
-                        }
-                        ${
-                          order.cor === "blue"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200"
-                            : ""
-                        }
-                        ${
-                          order.cor === "green"
-                            ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200"
-                            : ""
-                        }
-                      `}
-                      >
-                        {order.status}
-                      </span>
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                {loadingPedidos ? (
+                  <tr>
+                    <td colSpan={5} className="p-10 text-center text-slate-400">
+                      Carregando pedidos...
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  pedidosRecentesData.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group"
+                    >
+                      <td className="p-4 font-mono text-xs text-slate-500">
+                        #{order.id.slice(-6)}
+                      </td>
+                      <td className="p-4">
+                        <div className="font-bold">{order.produto}</div>
+                        <div className="text-xs text-slate-400">
+                          {order.usuario}
+                        </div>
+                      </td>
+                      <td className="p-4 text-slate-500">{order.data}</td>
+                      <td className="p-4 font-bold">
+                        {formatCurrency(order.valor)}
+                      </td>
+                      <td className="p-4">
+                        <StatusBadge status={order.status} cor={order.cor} />
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        {/* Sidebar Widgets */}
-        <div className="xl:col-span-1 flex flex-col gap-6">
-          {/* Top Item Widget */}
-          <div className="bg-white dark:bg-[var(--zephira-dark)] rounded-xl border border-gray-200 dark:border-white/5 shadow-sm p-6">
-            <h3 className="text-lg font-bold text-[var(--zephira-text)] dark:text-white mb-4">
-              Item Mais Vendido
-            </h3>
-            <div className="relative rounded-lg overflow-hidden h-48 w-full bg-gray-800">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-              <div className="absolute bottom-4 left-4 text-white">
-                <p className="font-bold text-lg">
-                  {produtoMaisVendido?.NM_PRODUTO}
-                </p>
-                <p className="text-sm opacity-90">
-                  {produtoMaisVendido?.qt_vendida} unidades vendidas
-                </p>
+        {/* 4. Widgets Laterais */}
+        <aside className="flex flex-col gap-6">
+          {/* Item mais vendido com estilo Premium */}
+          <div className="bg-[#102220] rounded-2xl p-6 text-white relative overflow-hidden group shadow-xl">
+            <div className="relative z-10">
+              <span className="text-[#11d4c4] text-[10px] font-bold uppercase tracking-widest">
+                Destaque de Vendas
+              </span>
+              <h3 className="text-xl font-bold mt-1 mb-4">
+                {maisVendido?.NM_PRODUTO || "Calculando..."}
+              </h3>
+              <div className="flex items-end gap-2">
+                <span className="text-3xl font-black">
+                  {maisVendido?.qt_vendida || 0}
+                </span>
+                <span className="text-sm text-slate-400 mb-1">
+                  unidades este mês
+                </span>
               </div>
+            </div>
+            <div className="absolute -right-4 -bottom-4 opacity-20 group-hover:scale-110 transition-transform duration-500">
+              <span className="material-symbols-outlined text-[120px]">
+                workspace_premium
+              </span>
             </div>
           </div>
 
-          {/* Low Stock Widget */}
-          <div className="bg-white dark:bg-[var(--zephira-dark)] rounded-xl border border-gray-200 dark:border-white/5 shadow-sm p-6 flex-1">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-[var(--zephira-text)] dark:text-white">
-                Estoque Baixo
-              </h3>
-              <button
-                className="text-[var(--zephira-primary)] text-xs font-bold hover:underline"
-                onClick={() => handleEstoque()}
-              >
-                Gerenciar
-              </button>
+          {/* Estoque Baixo */}
+          <div className="bg-white dark:bg-[#102220] rounded-2xl border border-slate-200 dark:border-white/5 p-6 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="font-bold">Reposição Crítica</h3>
+              <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                Alerta
+              </span>
             </div>
-            <div className="flex flex-col gap-4">
-              {estoqueBaixoData.map((item) => (
+            <div className="space-y-4">
+              {estoqueBaixo.map((item) => (
                 <div
                   key={item.CD_SKU}
-                  className="flex items-center justify-between p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-transparent"
+                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-all"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="size-10 rounded bg-gray-200 relative overflow-hidden">
-                      {/* Image placeholder */}
-                      <Image
-                        src={
-                          item.DS_IMAGEM_THUMB?.startsWith("http")
-                            ? item.DS_IMAGEM_THUMB
-                            : "/assets/placeholder.png"
-                        }
-                        alt={item.NM_PRODUTO}
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm text-[var(--zephira-text)] dark:text-white">
-                        {item.NM_PRODUTO}
-                      </p>
-                      <p className="text-xs text-[var(--zephira-muted)]">
-                        {item.CD_SKU}
-                      </p>
-                    </div>
+                  <div className="size-12 rounded-lg bg-slate-100 relative overflow-hidden flex-shrink-0">
+                    <Image
+                      src={item.DS_IMAGEM_THUMB || "/placeholder.png"}
+                      alt={item.NM_PRODUTO}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate">
+                      {item.NM_PRODUTO}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      {item.CD_SKU}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-red-500 font-bold text-sm">
-                      {item.QT_ESTOQUE} Restantes
+                    <p className="text-sm font-black text-red-500">
+                      {item.QT_ESTOQUE}
                     </p>
-                    <button className="text-[10px] uppercase font-bold text-[var(--zephira-primary)] mt-0.5 hover:underline">
-                      Repor
-                    </button>
+                    <p className="text-[9px] uppercase font-bold text-slate-400">
+                      Restam
+                    </p>
                   </div>
                 </div>
               ))}
             </div>
+            <button
+              onClick={() => router.push("/inventario")}
+              className="w-full mt-6 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-white/5 rounded-xl hover:bg-slate-200 transition-colors"
+            >
+              Ir para Inventário
+            </button>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
+  );
+}
+
+// Sub-componente para os Badges de Status
+function StatusBadge({ status, cor }: { status: string; cor: string }) {
+  const styles: Record<string, string> = {
+    yellow:
+      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    blue: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+    green:
+      "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+  };
+
+  return (
+    <span
+      className={cn(
+        "px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider",
+        styles[cor] || "bg-slate-100 text-slate-600",
+      )}
+    >
+      {status}
+    </span>
   );
 }

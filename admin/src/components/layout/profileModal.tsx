@@ -72,6 +72,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     setIsLoading(true);
     try {
       await api.put("/admin/me/password", {
+        email,
         currentPassword,
         newPassword,
       });

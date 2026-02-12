@@ -38,7 +38,7 @@ export const useUserData = () => {
 
   useEffect(() => {
     const cookies = nookies.get(null);
-    const token = cookies["zephira-token"] || cookies.auth_token;
+    const token = cookies["zephira_token_admin"] || cookies.auth_token;
 
     if (token) {
       try {
