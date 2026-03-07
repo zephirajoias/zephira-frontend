@@ -205,7 +205,7 @@ export default function LoginForm() {
                 </div>
                 <div className="text-sm">
                   <Link
-                    href="#"
+                    href="/esqueceu-senha"
                     className="font-bold text-[var(--zephira-primary)] hover:opacity-80 transition-opacity"
                   >
                     Esqueceu a senha?

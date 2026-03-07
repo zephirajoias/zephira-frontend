@@ -23,7 +23,7 @@ export function middleware(request: NextRequest) {
   const token = request.cookies.get("zephira_token_admin")?.value;
   const { pathname } = request.nextUrl;
 
-  const publicRoutes = ["/login"];
+  const publicRoutes = ["/login", "/esqueceu-senha", "/resete-senha"];
   const isPublicRoute = publicRoutes.some((route) =>
     pathname.startsWith(route),
   );

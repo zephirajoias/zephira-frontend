@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  /* Paleta Zephira Jewelry */
+  --zephira-primary: #11d4c4; /* O turquesa vibrante */
+  --zephira-dark: #102220; /* O verde escuro profundo */
+  --zephira-light: #f6f8f8; /* O branco gelo */
+  --zephira-text: #111817; /* Quase preto */
+  --zephira-muted: #618986; /* Verde acinzentado */
+
+  /* Background inputs */
+  --input-bg: #ffffff;
+}
+
+@theme inline {
+  /* Mapeando para o Tailwind */
+  --color-primary: var(--zephira-primary);
+  --color-bg-dark: var(--zephira-dark);
+  --color-bg-light: var(--zephira-light);
+  --color-text-main: var(--zephira-text);
+  --color-text-muted: var(--zephira-muted);
+
+  --font-display: var(--font-manrope), sans-serif;
+}
+
+body {
+  background-color: var(--zephira-light);
+  color: var(--zephira-text);
+  font-family: var(--font-display);
+  min-height: 100vh;
+}
+
+/* Utilitários específicos */
+@layer utilities {
+  .input-field {
+    @apply block w-full rounded-lg border-0 py-3 pl-10 text-text-main ring-1 ring-inset ring-slate-200 placeholder:text-text-muted focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6 transition-all;
+  }
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
