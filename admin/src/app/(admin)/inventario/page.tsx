@@ -20,6 +20,7 @@ interface InventoryItem {
   NM_PRODUTO: string;
   CD_SKU: string;
   ds_imagem_thumb: string;
+  CD_CATEGORIA: number;
   NM_CATEGORIA: string;
   VL_PRECO: number;
   QT_ESTOQUE: number;
@@ -31,6 +32,7 @@ interface GroupedProduct {
   CD_PRODUTO: number;
   NM_PRODUTO: string;
   ds_imagem_thumb: string;
+  CD_CATEGORIA: number;
   NM_CATEGORIA: string;
   total_estoque: number;
   variations: InventoryItem[];
@@ -108,6 +110,7 @@ export default function InventoryPage() {
           CD_PRODUTO: item.CD_PRODUTO,
           NM_PRODUTO: item.NM_PRODUTO,
           ds_imagem_thumb: item.ds_imagem_thumb,
+          CD_CATEGORIA: item.CD_CATEGORIA,
           NM_CATEGORIA: item.NM_CATEGORIA,
           total_estoque: 0,
           variations: [],
