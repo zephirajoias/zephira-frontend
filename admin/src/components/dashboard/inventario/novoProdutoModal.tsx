@@ -3,6 +3,7 @@
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SimulacaoRecebimento } from "./SimulacaoRecebimento";
 
 interface NewProductModalProps {
   isOpen: boolean;
@@ -428,6 +429,8 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
                       className="w-full rounded-lg bg-gray-100 dark:bg-white/5 px-4 py-2 text-gray-500 outline-none cursor-not-allowed"
                     />
                   </div>
+
+                  <SimulacaoRecebimento preco={Number(preco) || 0} />
                 </div>
               </div>
             </div>

@@ -21,6 +21,7 @@ import {
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import { SimulacaoRecebimento } from "./SimulacaoRecebimento";
 
 interface EditProductModalProps {
   isOpen: boolean;
@@ -286,6 +287,8 @@ export function EditProductModal({
                 />
               </div>
             </div>
+
+            <SimulacaoRecebimento preco={Number(preco) || 0} />
 
             {/* Descrição */}
             <div className="space-y-2">

@@ -37,6 +37,14 @@ export default function SettingsPage() {
           color: "amber",
           href: "/shipping",
         },
+        {
+          title: "Taxas de Pagamento",
+          description:
+            "Ajuste as taxas do Mercado Pago usadas para simular quanto você recebe por PIX e cartão.",
+          icon: "payments",
+          color: "teal",
+          href: "/settings/pagamento",
+        },
       ],
     },
     {
