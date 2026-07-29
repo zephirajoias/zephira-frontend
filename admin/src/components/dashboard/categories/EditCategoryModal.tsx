@@ -1,5 +1,6 @@
 "use client";
 
+import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { useEffect, useState } from "react";
 
@@ -43,11 +44,9 @@ export function EditCategoryModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-[#102220] w-full max-w-md rounded-xl p-6 shadow-2xl">
+    <Modal isOpen={isOpen} onClose={onClose} panelClassName="max-w-md">
+      <div className="p-6">
         <h3 className="text-lg font-bold text-[var(--zephira-text)] dark:text-white mb-4">
           Editar Categoria
         </h3>
@@ -89,6 +88,6 @@ export function EditCategoryModal({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 }

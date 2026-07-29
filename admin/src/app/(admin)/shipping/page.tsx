@@ -50,7 +50,7 @@ export default function ShippingPage() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto flex flex-col gap-8 pb-16 animate-in fade-in duration-500">
+    <div className="max-w-[1400px] mx-auto flex flex-col gap-8 pb-16">
       {/* 1. Header Fixo de Ações */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-slate-100 dark:border-white/5 pb-8">
         <div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -72,19 +73,10 @@ export function AddVariationModal({
     }
   };
 
-  if (!isOpen || !product) return null;
+  if (!product) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      role="dialog"
-    >
-      <div
-        className="absolute inset-0 bg-gray-900/60 backdrop-blur-md"
-        onClick={onClose}
-      />
-
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#102220] rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 ease-out">
+    <Modal isOpen={isOpen} onClose={onClose} panelClassName="max-w-lg">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-[#0c1a18]/50">
           <div className="flex items-center gap-3">
@@ -201,7 +193,6 @@ export function AddVariationModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

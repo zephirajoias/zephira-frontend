@@ -71,7 +71,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="max-w-[1400px] mx-auto flex flex-col gap-10 pb-16 animate-in fade-in duration-500">
+    <div className="max-w-[1400px] mx-auto flex flex-col gap-10 pb-16">
       {/* 1. Header Dinâmico */}
       <header className="flex flex-col gap-4">
         <nav className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">

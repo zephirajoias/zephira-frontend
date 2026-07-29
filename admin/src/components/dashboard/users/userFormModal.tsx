@@ -1,5 +1,6 @@
 "use client";
 
+import { Modal } from "@/components/ui/Modal";
 import { useUserData } from "@/hooks/useUserData";
 import api from "@/lib/api";
 import { useEffect, useState } from "react";
@@ -68,22 +69,21 @@ export function UserFormModal({
     setIsLoading(true);
 
     try {
-      const payload: any = {
-        NM_USUARIO: name,
-        DS_EMAIL: email,
-        TP_PERFIL: "ADMIN",
-      };
-
       // Só envia senha se foi digitada (criação ou alteração na edição)
-      if (password) {
-        payload.DS_SENHA = password;
-      }
-
       if (isEditing) {
-        await api.put(`/admin/usuario/${user.CD_USUARIO}`, payload);
+        const payload: any = {
+          NM_USUARIO: name,
+        };
+        if (password) payload.DS_SENHA = password;
+
+        await api.put(`/admin/${user.CD_USUARIO}`, payload);
         toast.success("Usuário atualizado com sucesso!");
       } else {
-        await api.post("/admin", payload);
+        await api.post("/admin", {
+          NM_USUARIO: name,
+          DS_EMAIL: email,
+          DS_SENHA: password,
+        });
         toast.success("Novo admin criado com sucesso!");
       }
 
@@ -97,19 +97,8 @@ export function UserFormModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      role="dialog"
-    >
-      <div
-        className="absolute inset-0 bg-[#0f1715]/60 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
-
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#102220] rounded-2xl shadow-2xl border border-gray-100 dark:border-white/5 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+    <Modal isOpen={isOpen} onClose={onClose} panelClassName="max-w-lg">
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 dark:border-white/5 bg-white/50 dark:bg-[#102220]/50 backdrop-blur-md">
           <div className="flex items-center gap-3">
@@ -260,7 +249,6 @@ export function UserFormModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

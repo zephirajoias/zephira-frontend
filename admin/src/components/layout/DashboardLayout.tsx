@@ -3,6 +3,7 @@
 import { ProfileModal } from "@/components/layout/profileModal";
 import { useUserData } from "@/hooks/useUserData";
 import { cn } from "@/lib/utils"; // Utilitário comum para concatenar classes (opcional)
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -198,7 +199,19 @@ export default function DashboardLayout({
           id="main-content"
           className="flex-1 overflow-y-auto p-4 lg:p-8 scroll-smooth"
         >
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="max-w-7xl mx-auto">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </main>
       </div>
 

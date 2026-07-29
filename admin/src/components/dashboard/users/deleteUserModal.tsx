@@ -1,5 +1,6 @@
 "use client";
 
+import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { useState } from "react";
 import { toast } from "react-toastify";
@@ -34,11 +35,9 @@ export function DeleteUserModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-[#102220] w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center border border-gray-100 dark:border-white/5 animate-in fade-in zoom-in-95">
+    <Modal isOpen={isOpen} onClose={onClose} panelClassName="max-w-sm">
+      <div className="p-6 text-center">
         <div className="size-12 rounded-full bg-red-100 dark:bg-red-900/20 text-red-500 flex items-center justify-center mx-auto mb-4">
           <span className="material-symbols-outlined text-2xl">
             person_remove
@@ -68,6 +67,6 @@ export function DeleteUserModal({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

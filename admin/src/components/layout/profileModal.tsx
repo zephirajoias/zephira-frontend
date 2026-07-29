@@ -1,5 +1,6 @@
 "use client";
 
+import { Modal } from "@/components/ui/Modal";
 import { useUserData } from "@/hooks/useUserData";
 import api from "@/lib/api";
 import { useEffect, useState } from "react";
@@ -94,20 +95,8 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6"
-      role="dialog"
-    >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-[#0f1715]/60 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
-      />
-
-      <div className="relative w-full max-w-md bg-white dark:bg-[#102220] rounded-2xl shadow-2xl border border-gray-100 dark:border-white/5 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200">
+    <Modal isOpen={isOpen} onClose={onClose} panelClassName="max-w-md">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-white/5 bg-white/50 dark:bg-[#102220]/50 backdrop-blur-md">
           <div className="flex items-center gap-3">
@@ -272,7 +261,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             </form>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

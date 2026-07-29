@@ -94,7 +94,7 @@ export default function UsersPage() {
   );
 
   return (
-    <div className="max-w-[1400px] mx-auto flex flex-col gap-8 pb-10 animate-in fade-in duration-500">
+    <div className="max-w-[1400px] mx-auto flex flex-col gap-8 pb-10">
       {/* Modais */}
       <UserFormModal
         isOpen={modals.form || !!modals.editUser}

@@ -1,5 +1,6 @@
 "use client";
 
+import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 
 interface DeleteCategoryModalProps {
@@ -27,11 +28,9 @@ export function DeleteCategoryModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-white dark:bg-[#102220] w-full max-w-sm rounded-xl p-6 shadow-2xl text-center">
+    <Modal isOpen={isOpen} onClose={onClose} panelClassName="max-w-sm">
+      <div className="p-6 text-center">
         <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
           <span className="material-symbols-outlined text-2xl">warning</span>
         </div>
@@ -58,6 +57,6 @@ export function DeleteCategoryModal({
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

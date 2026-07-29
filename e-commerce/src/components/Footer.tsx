@@ -1,7 +1,6 @@
 "use client";
 
-import logo from "@/assets/logo.png"; // Certifique-se de que este caminho está correto no seu projeto
-import Image from "next/image";
+import { Logo } from "@/components/Logo";
 import Link from "next/link";
 
 export function Footer() {
@@ -13,14 +12,7 @@ export function Footer() {
           {/* Coluna 1: Logo */}
           <div className="flex flex-col items-center lg:items-start">
             <div className="w-36 h-36 bg-white rounded-full flex flex-col items-center justify-center shadow-xl mb-4 overflow-hidden p-4">
-              {/* Utilizando a sua logo oficial do projeto */}
-              <Image
-                src={logo}
-                alt="Zephira Joias"
-                width={120}
-                height={80}
-                className="object-contain"
-              />
+              <Logo className="text-base" />
             </div>
             <p className="text-xs font-bold opacity-80 text-center lg:text-left mt-2 px-4 lg:px-0 leading-relaxed">
               A beleza atemporal da prata 925 em joias feitas para realçar o seu

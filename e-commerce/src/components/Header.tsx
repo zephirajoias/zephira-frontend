@@ -1,7 +1,9 @@
 "use client";
 
-import logo from "@/assets/logo.png";
-import Image from "next/image";
+import { Logo } from "@/components/Logo";
+import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
+import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -51,6 +53,8 @@ const CATEGORIAS_EXTRAS = [
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMobileSub, setOpenMobileSub] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { totalItems } = useCart();
 
   // Helper para fechar o menu mobile ao clicar em um link
   const closeMenu = () => {
@@ -78,14 +82,7 @@ export function Header() {
               onClick={closeMenu}
               className="flex items-center justify-center transition-transform hover:opacity-90 active:scale-95"
             >
-              <Image
-                src={logo}
-                alt="Zephira Joias"
-                width={300}
-                height={100}
-                className="object-contain h-auto w-auto max-h-16 sm:max-h-20"
-                priority
-              />
+              <Logo className="text-xl sm:text-2xl" />
             </Link>
           </div>
 
@@ -162,9 +159,8 @@ export function Header() {
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
-              {/* BONECO DO USUÁRIO (Sempre visível conforme image_97a585.jpg) */}
               <Link
-                href="/login"
+                href={user ? "/minha-conta" : "/login"}
                 className="text-text-main hover:text-primary transition-colors"
                 title="Minha Conta"
               >
@@ -181,9 +177,20 @@ export function Header() {
                 <span className="material-symbols-outlined text-3xl">
                   shopping_cart
                 </span>
-                <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
-                  2
-                </span>
+                <AnimatePresence>
+                  {totalItems > 0 && (
+                    <motion.span
+                      key={totalItems}
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.5, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                      className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white"
+                    >
+                      {totalItems}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </Link>
             </div>
           </div>
@@ -196,12 +203,12 @@ export function Header() {
           <div className="p-4 space-y-2">
             {/* LINK DE USUÁRIO NO MENU MOBILE PARA FACILITAR O ACESSO */}
             <Link
-              href="/login"
+              href={user ? "/minha-conta" : "/login"}
               onClick={closeMenu}
               className="flex items-center gap-3 py-4 px-2 text-sm font-bold text-text-main border-b border-slate-50 uppercase tracking-wider hover:text-primary transition-colors"
             >
               <span className="material-symbols-outlined">person</span>
-              Minha Conta / Entrar
+              {user ? user.NM_USUARIO : "Minha Conta / Entrar"}
             </Link>
 
             {MENU_ESTRUTURA.map((item) => (

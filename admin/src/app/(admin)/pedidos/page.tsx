@@ -1,6 +1,7 @@
 "use client";
 
 import { StatCard } from "@/components/dashboard/StatCard";
+import { PedidoDetalheModal } from "@/components/dashboard/pedidos/PedidoDetalheModal";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import React, { useEffect, useMemo, useState } from "react";
@@ -67,6 +68,9 @@ export default function OrdersPage() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<number | null>(
+    null,
+  );
 
   const loadData = async () => {
     setIsLoading(true);
@@ -101,7 +105,13 @@ export default function OrdersPage() {
   }, [pedidos, filterStatus, searchQuery]);
 
   return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-6 pb-10 animate-in fade-in duration-500">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-6 pb-10">
+      <PedidoDetalheModal
+        cdPedido={pedidoSelecionado}
+        onClose={() => setPedidoSelecionado(null)}
+        onSuccess={loadData}
+      />
+
       {/* 1. Breadcrumbs & Header */}
       <header className="flex flex-col gap-4">
         <nav className="flex items-center gap-2 text-xs font-medium text-slate-500 uppercase tracking-widest">
@@ -332,7 +342,12 @@ export default function OrdersPage() {
                         </div>
                       </td>
                       <td className="p-4 text-right">
-                        <button className="p-2 hover:bg-[#11d4c4]/10 text-[#11d4c4] rounded-lg transition-colors">
+                        <button
+                          onClick={() =>
+                            setPedidoSelecionado(order.cd_pedido)
+                          }
+                          className="p-2 hover:bg-[#11d4c4]/10 text-[#11d4c4] rounded-lg transition-colors"
+                        >
                           <span className="material-symbols-outlined text-xl">
                             visibility
                           </span>

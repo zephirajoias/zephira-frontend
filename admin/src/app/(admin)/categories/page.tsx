@@ -125,7 +125,7 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-8 pb-10 animate-in fade-in duration-500">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-8 pb-10">
       {/* Modais */}
       <EditCategoryModal
         isOpen={!!modals.edit}

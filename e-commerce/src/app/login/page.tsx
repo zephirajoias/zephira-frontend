@@ -2,10 +2,44 @@
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { ApiError, useAuth } from "@/context/AuthContext";
+import { AnimatePresence, motion } from "motion/react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [carregando, setCarregando] = useState(false);
+
+  const { login, register } = useAuth();
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErro(null);
+    setCarregando(true);
+
+    try {
+      if (isLogin) {
+        await login(email, senha);
+      } else {
+        await register(nome, email, senha);
+      }
+      router.push("/minha-conta");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setErro(err.body?.message || "Não foi possível concluir. Tente novamente.");
+      } else {
+        setErro("Não foi possível concluir. Tente novamente.");
+      }
+    } finally {
+      setCarregando(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-bg-light font-display text-text-main flex flex-col">
@@ -13,17 +47,28 @@ export default function LoginPage() {
 
       <main className="flex-1 flex items-center justify-center p-4 sm:p-8 py-12 sm:py-20">
         {/* CARD PRINCIPAL DE LOGIN/CADASTRO */}
-        <div className="w-full max-w-[480px] bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="w-full max-w-[480px] bg-white rounded-[3rem] shadow-2xl border border-slate-100 overflow-hidden"
+        >
           {/* SELETOR DE ABAS */}
           <div className="flex border-b border-slate-100 bg-slate-50/50">
             <button
-              onClick={() => setIsLogin(true)}
+              onClick={() => {
+                setIsLogin(true);
+                setErro(null);
+              }}
               className={`flex-1 py-6 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${isLogin ? "text-primary bg-white border-b-2 border-primary" : "text-slate-300 hover:text-text-main"}`}
             >
               Entrar
             </button>
             <button
-              onClick={() => setIsLogin(false)}
+              onClick={() => {
+                setIsLogin(false);
+                setErro(null);
+              }}
               className={`flex-1 py-6 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 ${!isLogin ? "text-primary bg-white border-b-2 border-primary" : "text-slate-300 hover:text-text-main"}`}
             >
               Cadastrar
@@ -48,24 +93,41 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
-              {!isLogin && (
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">
-                    Nome Completo
-                  </label>
-                  <div className="relative flex items-center">
-                    <span className="material-symbols-outlined absolute left-4 text-slate-300">
-                      person
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="Seu nome completo"
-                      className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 font-medium text-sm transition-all"
-                    />
-                  </div>
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              {erro && (
+                <div className="bg-red-50 border border-red-100 text-red-500 text-xs font-bold rounded-2xl px-4 py-3">
+                  {erro}
                 </div>
               )}
+
+              <AnimatePresence initial={false}>
+                {!isLogin && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className="space-y-1.5 overflow-hidden"
+                  >
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">
+                      Nome Completo
+                    </label>
+                    <div className="relative flex items-center">
+                      <span className="material-symbols-outlined absolute left-4 text-slate-300">
+                        person
+                      </span>
+                      <input
+                        type="text"
+                        required
+                        value={nome}
+                        onChange={(e) => setNome(e.target.value)}
+                        placeholder="Seu nome completo"
+                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 font-medium text-sm transition-all"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">
@@ -77,6 +139,9 @@ export default function LoginPage() {
                   </span>
                   <input
                     type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="seu@email.com"
                     className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 font-medium text-sm transition-all"
                   />
@@ -93,67 +158,31 @@ export default function LoginPage() {
                   </span>
                   <input
                     type="password"
+                    required
+                    minLength={6}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
                     placeholder="••••••••"
                     className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 font-medium text-sm transition-all"
                   />
                 </div>
-                {isLogin && (
-                  <div className="text-right px-2">
-                    <button className="text-[10px] font-bold text-primary hover:underline uppercase tracking-wider transition-all">
-                      Esqueceu a senha?
-                    </button>
-                  </div>
-                )}
               </div>
-
-              {!isLogin && (
-                <div className="flex items-start gap-3 px-2 py-2">
-                  <input
-                    type="checkbox"
-                    className="mt-1 w-4 h-4 rounded border-slate-300 accent-primary cursor-pointer"
-                    id="terms"
-                  />
-                  <label
-                    htmlFor="terms"
-                    className="text-[10px] font-bold text-slate-400 uppercase leading-relaxed cursor-pointer"
-                  >
-                    Aceito os{" "}
-                    <span className="text-primary underline">
-                      termos de uso
-                    </span>{" "}
-                    e a{" "}
-                    <span className="text-primary underline">
-                      política de privacidade
-                    </span>
-                  </label>
-                </div>
-              )}
 
               {/* BOTÃO PRINCIPAL COM ESTILO DARK PREMIUM */}
-              <button className="w-full bg-bg-dark text-primary py-4.5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl hover:scale-[1.02] active:scale-95 transition-all mt-4 h-14">
-                {isLogin ? "Acessar Conta" : "Finalizar Cadastro"}
-              </button>
-
-              <div className="relative flex items-center py-4">
-                <div className="flex-grow border-t border-slate-100"></div>
-                <span className="flex-shrink mx-4 text-[10px] font-black text-slate-200 uppercase tracking-widest">
-                  ou
-                </span>
-                <div className="flex-grow border-t border-slate-100"></div>
-              </div>
-
-              {/* SOCIAL LOGIN */}
-              <button className="w-full bg-white border border-slate-100 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-slate-50 transition-all text-slate-600 shadow-sm">
-                <img
-                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                  className="w-4 h-4"
-                  alt="Google"
-                />
-                Continuar com Google
+              <button
+                type="submit"
+                disabled={carregando}
+                className="w-full bg-bg-dark text-primary py-4.5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl hover:scale-[1.02] active:scale-95 transition-all mt-4 h-14 disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {carregando
+                  ? "Aguarde..."
+                  : isLogin
+                    ? "Acessar Conta"
+                    : "Finalizar Cadastro"}
               </button>
             </form>
           </div>
-        </div>
+        </motion.div>
       </main>
 
       <Footer />

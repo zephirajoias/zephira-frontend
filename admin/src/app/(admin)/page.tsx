@@ -92,7 +92,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="max-w-[1600px] mx-auto flex flex-col gap-8 pb-10 animate-in fade-in duration-500">
+    <div className="max-w-[1600px] mx-auto flex flex-col gap-8 pb-10">
       {/* 1. Heading - Mais limpo */}
       <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>

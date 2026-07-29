@@ -1,8 +1,6 @@
 "use client";
 
-import joia from "@/assets/photo-1573408301185-9146fe634ad0.jpg";
 import api from "@/lib/api";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import nookies from "nookies";
@@ -46,15 +44,8 @@ export default function LoginForm() {
     <div className="flex min-h-screen w-full font-display">
       {/* LADO ESQUERDO: Branding & Visual (Desktop) */}
       <div className="relative hidden lg:flex w-1/2 flex-col justify-between overflow-hidden bg-[var(--zephira-dark)]">
-        {/* Imagem de Fundo (Joalheria/Textura) */}
-        <div className="absolute inset-0 w-full h-full">
-          <Image
-            src={joia}
-            alt="Textura luxuosa de diamante e esmeralda"
-            fill
-            className="object-cover opacity-50"
-            priority
-          />
+        {/* Fundo decorativo (sem foto real cadastrada ainda) */}
+        <div className="absolute inset-0 w-full h-full bg-linear-to-br from-[var(--zephira-primary)]/30 via-[var(--zephira-dark)] to-[var(--zephira-dark)]">
           <div className="absolute inset-0 bg-linear-to-t from-[var(--zephira-dark)]/90 via-[var(--zephira-dark)]/40 to-transparent"></div>
         </div>
 

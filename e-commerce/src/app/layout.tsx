@@ -1,3 +1,5 @@
+import { PageTransition } from "@/components/PageTransition";
+import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
@@ -52,7 +54,11 @@ export default function RootLayout({
           min-h-screen
         `}
       >
-        <CartProvider>{children}</CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <PageTransition>{children}</PageTransition>
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

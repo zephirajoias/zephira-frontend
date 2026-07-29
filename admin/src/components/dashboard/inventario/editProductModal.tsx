@@ -1,5 +1,6 @@
 "use client";
 
+import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import {
   Archive,
@@ -162,16 +163,12 @@ export function EditProductModal({
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div
-        className="absolute inset-0 bg-[#0f1715]/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-
-      <div className="relative w-full max-w-2xl bg-white dark:bg-[#102220] rounded-[24px] shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden max-h-[90vh] flex flex-col">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      panelClassName="max-w-2xl rounded-[24px] max-h-[90vh]"
+    >
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 dark:border-white/5 bg-white/50 dark:bg-[#102220]/50 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-3">
@@ -388,7 +385,6 @@ export function EditProductModal({
             {isLoading ? "Salvando..." : "Salvar Alterações"}
           </button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -177,19 +178,8 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      role="dialog"
-    >
-      <div
-        className="absolute inset-0 bg-[#0f1715]/60 backdrop-blur-sm"
-        onClick={onClose}
-      ></div>
-
-      <div className="relative w-full max-w-5xl max-h-[90vh] bg-white dark:bg-[#102220] rounded-2xl shadow-xl flex flex-col overflow-hidden">
+    <Modal isOpen={isOpen} onClose={onClose} panelClassName="max-w-5xl max-h-[90vh]">
         {/* Header */}
         <header className="h-18 px-8 flex items-center justify-between border-b border-gray-100 dark:border-white/5 bg-white/50 dark:bg-[#102220]/50 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-3">
@@ -475,7 +465,6 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
             </button>
           </div>
         </footer>
-      </div>
-    </div>
+    </Modal>
   );
 }
