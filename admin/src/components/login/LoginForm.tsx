@@ -10,11 +10,16 @@ export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+  const [carregando, setCarregando] = useState(false);
 
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErro(null);
+    setCarregando(true);
+
     try {
       const response = await api.post("/admin/login", {
         DS_EMAIL: email,
@@ -35,8 +40,14 @@ export default function LoginForm() {
         localStorage.setItem("zephira_token_admin", access_token);
         router.push("/");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed", error);
+      setErro(
+        error?.response?.data?.message ||
+          "Não foi possível entrar. Tente novamente.",
+      );
+    } finally {
+      setCarregando(false);
     }
   };
 
@@ -114,6 +125,12 @@ export default function LoginForm() {
 
           <div className="mt-10">
             <form onSubmit={handleSubmit} className="space-y-6">
+              {erro && (
+                <div className="rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm font-bold text-red-600">
+                  {erro}
+                </div>
+              )}
+
               {/* Input: Email */}
               <div>
                 <label
@@ -208,9 +225,10 @@ export default function LoginForm() {
               <div>
                 <button
                   type="submit"
-                  className="flex w-full justify-center rounded-lg bg-[var(--zephira-primary)] px-3 py-3.5 text-sm font-bold leading-6 text-white shadow-sm hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--zephira-primary)] transition-all duration-200"
+                  disabled={carregando}
+                  className="flex w-full justify-center rounded-lg bg-[var(--zephira-primary)] px-3 py-3.5 text-sm font-bold leading-6 text-white shadow-sm hover:brightness-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--zephira-primary)] transition-all duration-200 disabled:opacity-60 disabled:pointer-events-none"
                 >
-                  Acessar Sistema
+                  {carregando ? "Entrando..." : "Acessar Sistema"}
                 </button>
               </div>
             </form>
