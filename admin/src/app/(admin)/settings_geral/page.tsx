@@ -14,18 +14,44 @@ interface ConfigData {
   DS_FUSO_HORARIO: string;
   DS_LOGO: string;
   DS_FAVICON: string;
+  // Remetente (SuperFrete)
+  NM_REMETENTE: string;
+  NR_CEP_REMETENTE: string;
+  DS_ENDERECO_REMETENTE: string;
+  NR_NUMERO_REMETENTE: string;
+  NM_BAIRRO_REMETENTE: string;
+  NM_CIDADE_REMETENTE: string;
+  DS_UF_REMETENTE: string;
+  // Pacote padrão (SuperFrete)
+  NR_PACOTE_ALTURA: string;
+  NR_PACOTE_LARGURA: string;
+  NR_PACOTE_COMPRIMENTO: string;
+  NR_PACOTE_PESO: string;
 }
 
+const CONFIG_VAZIA: ConfigData = {
+  NM_LOJA: "",
+  DS_EMAIL_SUPORTE: "",
+  NR_TELEFONE: "",
+  SG_MOEDA: "BRL",
+  DS_FUSO_HORARIO: "UTC-3",
+  DS_LOGO: "",
+  DS_FAVICON: "",
+  NM_REMETENTE: "",
+  NR_CEP_REMETENTE: "",
+  DS_ENDERECO_REMETENTE: "",
+  NR_NUMERO_REMETENTE: "",
+  NM_BAIRRO_REMETENTE: "",
+  NM_CIDADE_REMETENTE: "",
+  DS_UF_REMETENTE: "",
+  NR_PACOTE_ALTURA: "4",
+  NR_PACOTE_LARGURA: "12",
+  NR_PACOTE_COMPRIMENTO: "17",
+  NR_PACOTE_PESO: "0.3",
+};
+
 export default function SettingsGeralPage() {
-  const [formData, setFormData] = useState<ConfigData>({
-    NM_LOJA: "",
-    DS_EMAIL_SUPORTE: "",
-    NR_TELEFONE: "",
-    SG_MOEDA: "BRL",
-    DS_FUSO_HORARIO: "UTC-3",
-    DS_LOGO: "",
-    DS_FAVICON: "",
-  });
+  const [formData, setFormData] = useState<ConfigData>(CONFIG_VAZIA);
 
   const [initialData, setInitialData] = useState<ConfigData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,7 +65,7 @@ export default function SettingsGeralPage() {
       // Se a API retornar um array, pegamos o primeiro. Se objeto, direto.
       const config = Array.isArray(data) ? data[0] : data;
 
-      const normalized = {
+      const normalized: ConfigData = {
         NM_LOJA: config?.NM_LOJA || "",
         DS_EMAIL_SUPORTE: config?.DS_EMAIL_SUPORTE || "",
         NR_TELEFONE: config?.NR_TELEFONE || "",
@@ -47,6 +73,18 @@ export default function SettingsGeralPage() {
         DS_FUSO_HORARIO: config?.DS_FUSO_HORARIO || "UTC-3",
         DS_LOGO: config?.DS_LOGO || "",
         DS_FAVICON: config?.DS_FAVICON || "",
+        NM_REMETENTE: config?.NM_REMETENTE || "",
+        NR_CEP_REMETENTE: config?.NR_CEP_REMETENTE || "",
+        DS_ENDERECO_REMETENTE: config?.DS_ENDERECO_REMETENTE || "",
+        NR_NUMERO_REMETENTE: config?.NR_NUMERO_REMETENTE || "",
+        NM_BAIRRO_REMETENTE: config?.NM_BAIRRO_REMETENTE || "",
+        NM_CIDADE_REMETENTE: config?.NM_CIDADE_REMETENTE || "",
+        DS_UF_REMETENTE: config?.DS_UF_REMETENTE || "",
+        NR_PACOTE_ALTURA: config?.NR_PACOTE_ALTURA?.toString() || "4",
+        NR_PACOTE_LARGURA: config?.NR_PACOTE_LARGURA?.toString() || "12",
+        NR_PACOTE_COMPRIMENTO:
+          config?.NR_PACOTE_COMPRIMENTO?.toString() || "17",
+        NR_PACOTE_PESO: config?.NR_PACOTE_PESO?.toString() || "0.3",
       };
 
       setFormData(normalized);
@@ -239,6 +277,212 @@ export default function SettingsGeralPage() {
                   <option value="UTC-4">Manaus (UTC-4)</option>
                   <option value="UTC-5">Nova York (UTC-5)</option>
                 </select>
+              </div>
+            </div>
+          </section>
+
+          {/* Sessão: Remetente para Envio (SuperFrete) */}
+          <section className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2">
+              <h3 className="font-black text-lg">Endereço de Remetente</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Usado como origem no cálculo de frete e na etiqueta gerada
+                pelo SuperFrete.
+              </p>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Nome do Remetente
+                </label>
+                <input
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                  value={formData.NM_REMETENTE}
+                  onChange={(e) =>
+                    setFormData({ ...formData, NM_REMETENTE: e.target.value })
+                  }
+                  placeholder="Ex: Zephira Joias"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    CEP
+                  </label>
+                  <input
+                    className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none"
+                    value={formData.NR_CEP_REMETENTE}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        NR_CEP_REMETENTE: e.target.value,
+                      })
+                    }
+                    placeholder="00000-000"
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Endereço
+                  </label>
+                  <input
+                    className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none"
+                    value={formData.DS_ENDERECO_REMETENTE}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        DS_ENDERECO_REMETENTE: e.target.value,
+                      })
+                    }
+                    placeholder="Rua, Avenida..."
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Número
+                  </label>
+                  <input
+                    className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none"
+                    value={formData.NR_NUMERO_REMETENTE}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        NR_NUMERO_REMETENTE: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Bairro
+                  </label>
+                  <input
+                    className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none"
+                    value={formData.NM_BAIRRO_REMETENTE}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        NM_BAIRRO_REMETENTE: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Cidade
+                  </label>
+                  <input
+                    className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none"
+                    value={formData.NM_CIDADE_REMETENTE}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        NM_CIDADE_REMETENTE: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    UF
+                  </label>
+                  <input
+                    maxLength={2}
+                    className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none uppercase"
+                    value={formData.DS_UF_REMETENTE}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        DS_UF_REMETENTE: e.target.value.toUpperCase(),
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Sessão: Pacote Padrão (SuperFrete) */}
+          <section className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2">
+              <h3 className="font-black text-lg">Pacote Padrão</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Dimensões e peso usados para calcular o frete de todo pedido,
+                até que cada produto tenha seu próprio peso/dimensão.
+              </p>
+            </div>
+            <div className="p-8 grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Altura (cm)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                  value={formData.NR_PACOTE_ALTURA}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      NR_PACOTE_ALTURA: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Largura (cm)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                  value={formData.NR_PACOTE_LARGURA}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      NR_PACOTE_LARGURA: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Comprimento (cm)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                  value={formData.NR_PACOTE_COMPRIMENTO}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      NR_PACOTE_COMPRIMENTO: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Peso (kg)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                  value={formData.NR_PACOTE_PESO}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      NR_PACOTE_PESO: e.target.value,
+                    })
+                  }
+                />
               </div>
             </div>
           </section>

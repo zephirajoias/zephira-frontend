@@ -74,12 +74,16 @@ export function PedidoDetalheModal({
   const [isSaving, setIsSaving] = useState(false);
   const [status, setStatus] = useState("PENDENTE");
   const [rastreio, setRastreio] = useState("");
+  const [comprandoEtiqueta, setComprandoEtiqueta] = useState(false);
+  const [labelUrl, setLabelUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!cdPedido) return;
 
     setIsLoading(true);
     setPedido(null);
+
+    setLabelUrl(null);
 
     api
       .get(`/admin/pedidos/${cdPedido}`)
@@ -91,6 +95,30 @@ export function PedidoDetalheModal({
       .catch(() => toast.error("Erro ao carregar pedido."))
       .finally(() => setIsLoading(false));
   }, [cdPedido]);
+
+  const handleComprarEtiqueta = async () => {
+    if (!cdPedido) return;
+
+    const confirmado = window.confirm(
+      "Isso vai COBRAR de verdade do saldo da sua conta SuperFrete e gerar a etiqueta. Confirma a compra?",
+    );
+    if (!confirmado) return;
+
+    setComprandoEtiqueta(true);
+    try {
+      const res = await api.post(`/admin/pedidos/${cdPedido}/comprar-etiqueta`);
+      if (res.data.trackingCode) setRastreio(res.data.trackingCode);
+      if (res.data.labelUrl) setLabelUrl(res.data.labelUrl);
+      toast.success("Etiqueta comprada com sucesso!");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(
+        error?.response?.data?.message || "Erro ao comprar a etiqueta.",
+      );
+    } finally {
+      setComprandoEtiqueta(false);
+    }
+  };
 
   const handleSalvarStatus = async () => {
     if (!cdPedido) return;
@@ -272,6 +300,49 @@ export function PedidoDetalheModal({
                       />
                     </div>
                   </section>
+
+                  {/* SuperFrete */}
+                  {pedido.CD_RASTREIO && (
+                    <section className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 rounded-xl p-4 space-y-3">
+                      <div className="flex items-start gap-2">
+                        <span className="material-symbols-outlined text-amber-600 text-lg">
+                          local_shipping
+                        </span>
+                        <p className="text-xs text-amber-800 dark:text-amber-400 leading-relaxed">
+                          Esse pedido tem um frete reservado no SuperFrete.
+                          Comprar a etiqueta cobra do saldo real da conta e
+                          não pode ser desfeito.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleComprarEtiqueta}
+                          disabled={comprandoEtiqueta}
+                          className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-lg transition-all disabled:opacity-60"
+                        >
+                          {comprandoEtiqueta
+                            ? "Comprando..."
+                            : "Comprar Etiqueta"}
+                        </button>
+
+                        {labelUrl && (
+                          <a
+                            href={labelUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-bold text-[var(--zephira-primary)] hover:underline flex items-center gap-1"
+                          >
+                            <span className="material-symbols-outlined text-base">
+                              print
+                            </span>
+                            Abrir etiqueta
+                          </a>
+                        )}
+                      </div>
+                    </section>
+                  )}
                 </>
               )}
             </div>

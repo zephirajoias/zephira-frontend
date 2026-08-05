@@ -18,6 +18,15 @@ interface Endereco {
   NM_BAIRRO: string;
   NM_CIDADE: string;
   DS_UF: string;
+  DS_DOCUMENTO?: string | null;
+}
+
+interface OpcaoFrete {
+  idServico: number;
+  transportadora: string;
+  servico: string;
+  preco: number;
+  prazoDias: number;
 }
 
 export default function CarrinhoPage() {
@@ -38,7 +47,13 @@ export default function CarrinhoPage() {
     NM_BAIRRO: "",
     NM_CIDADE: "",
     DS_UF: "",
+    DS_DOCUMENTO: "",
   });
+
+  const [opcoesFrete, setOpcoesFrete] = useState<OpcaoFrete[]>([]);
+  const [freteSelecionado, setFreteSelecionado] = useState<number | null>(null);
+  const [carregandoFrete, setCarregandoFrete] = useState(false);
+
   const [erro, setErro] = useState<string | null>(null);
   const [finalizando, setFinalizando] = useState(false);
 
@@ -55,11 +70,38 @@ export default function CarrinhoPage() {
       .catch(() => {});
   }, [user]);
 
+  // Recalcula o frete sempre que o endereço escolhido muda
+  useEffect(() => {
+    const endereco = enderecos.find(
+      (e) => e.CD_ENDERECO === enderecoSelecionado,
+    );
+    if (!endereco) {
+      setOpcoesFrete([]);
+      setFreteSelecionado(null);
+      return;
+    }
+
+    setCarregandoFrete(true);
+    setFreteSelecionado(null);
+    api
+      .get<OpcaoFrete[]>(`/frete/calcular?cep=${endereco.NR_CEP}`)
+      .then((opcoes) => {
+        setOpcoesFrete(opcoes);
+        if (opcoes.length > 0) setFreteSelecionado(opcoes[0].idServico);
+      })
+      .catch(() => setOpcoesFrete([]))
+      .finally(() => setCarregandoFrete(false));
+  }, [enderecoSelecionado, enderecos]);
+
   const formatMoney = (v: number) =>
     new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
     }).format(v);
+
+  const valorFrete =
+    opcoesFrete.find((o) => o.idServico === freteSelecionado)?.preco ?? 0;
+  const totalComFrete = totalPrice + valorFrete;
 
   const salvarNovoEndereco = async () => {
     setErro(null);
@@ -86,23 +128,34 @@ export default function CarrinhoPage() {
       return;
     }
 
+    if (!freteSelecionado) {
+      setErro("Selecione uma opção de frete.");
+      return;
+    }
+
     setErro(null);
     setFinalizando(true);
 
     try {
-      const pedido = await api.post<{ CD_PEDIDO: number }>(
-        "/loja/pedidos/checkout",
-        {
-          CD_ENDERECO: enderecoSelecionado,
-          itens: items.map((i) => ({
-            CD_VARIACAO: i.CD_VARIACAO,
-            QT_ITEM: i.quantidade,
-          })),
-        },
-      );
+      const pedido = await api.post<{
+        CD_PEDIDO: number;
+        checkoutUrl: string | null;
+      }>("/loja/pedidos/checkout", {
+        CD_ENDERECO: enderecoSelecionado,
+        itens: items.map((i) => ({
+          CD_VARIACAO: i.CD_VARIACAO,
+          QT_ITEM: i.quantidade,
+        })),
+        CD_SERVICO_FRETE: freteSelecionado,
+      });
 
       clearCart();
-      router.push(`/minha-conta?pedido=${pedido.CD_PEDIDO}`);
+
+      if (pedido.checkoutUrl) {
+        window.location.href = pedido.checkoutUrl;
+      } else {
+        router.push(`/minha-conta?pedido=${pedido.CD_PEDIDO}`);
+      }
     } catch (err) {
       setErro(
         err instanceof ApiError
@@ -351,6 +404,17 @@ export default function CarrinhoPage() {
                           className="w-16 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary uppercase"
                         />
                       </div>
+                      <input
+                        placeholder="CPF (necessário para gerar a etiqueta de envio)"
+                        value={novoEndereco.DS_DOCUMENTO}
+                        onChange={(e) =>
+                          setNovoEndereco({
+                            ...novoEndereco,
+                            DS_DOCUMENTO: e.target.value,
+                          })
+                        }
+                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary"
+                      />
                       <div className="flex gap-2 pt-1">
                         <button
                           onClick={salvarNovoEndereco}
@@ -372,6 +436,59 @@ export default function CarrinhoPage() {
                 </div>
               )}
 
+              {user && enderecoSelecionado && !mostrarNovoEndereco && (
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                  <h2 className="text-xs font-black uppercase tracking-widest mb-4">
+                    Frete
+                  </h2>
+
+                  {carregandoFrete && (
+                    <p className="text-xs text-slate-400 font-bold">
+                      Calculando frete...
+                    </p>
+                  )}
+
+                  {!carregandoFrete && opcoesFrete.length === 0 && (
+                    <p className="text-xs text-slate-400 font-bold">
+                      Não encontramos opções de frete para esse CEP.
+                    </p>
+                  )}
+
+                  {!carregandoFrete && opcoesFrete.length > 0 && (
+                    <div className="space-y-2">
+                      {opcoesFrete.map((opcao) => (
+                        <label
+                          key={opcao.idServico}
+                          className={`flex items-center justify-between gap-3 p-3 rounded-2xl border-2 cursor-pointer text-xs font-medium ${
+                            freteSelecionado === opcao.idServico
+                              ? "border-primary bg-primary/5"
+                              : "border-slate-100"
+                          }`}
+                        >
+                          <span className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              className="accent-primary"
+                              checked={freteSelecionado === opcao.idServico}
+                              onChange={() =>
+                                setFreteSelecionado(opcao.idServico)
+                              }
+                            />
+                            <span>
+                              {opcao.transportadora} — até {opcao.prazoDias}{" "}
+                              dia(s) úteis
+                            </span>
+                          </span>
+                          <span className="font-black text-text-main">
+                            {formatMoney(opcao.preco)}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="bg-bg-dark text-white p-8 rounded-[2.5rem] shadow-xl">
                 <h2 className="text-lg font-black uppercase tracking-widest mb-6 border-b border-white/10 pb-4">
                   Resumo
@@ -382,14 +499,18 @@ export default function CarrinhoPage() {
                     <span>Subtotal</span>
                     <span>{formatMoney(totalPrice)}</span>
                   </div>
-                  <div className="flex justify-between text-sm font-medium text-green-400">
+                  <div className="flex justify-between text-sm font-medium opacity-70">
                     <span>Frete</span>
-                    <span className="uppercase font-black">Grátis</span>
+                    <span>
+                      {freteSelecionado
+                        ? formatMoney(valorFrete)
+                        : "Selecione o endereço"}
+                    </span>
                   </div>
                   <div className="flex justify-between text-xl font-black pt-4 border-t border-white/10">
                     <span>Total</span>
                     <span className="text-primary">
-                      {formatMoney(totalPrice)}
+                      {formatMoney(totalComFrete)}
                     </span>
                   </div>
                 </div>
