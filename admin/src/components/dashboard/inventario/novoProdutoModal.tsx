@@ -36,8 +36,10 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
   const [preco, setPreco] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [imagemFile, setImagemFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [imagens, setImagens] = useState<{ file: File; previewUrl: string }[]>(
+    [],
+  );
+  const [imagemPrincipalIndex, setImagemPrincipalIndex] = useState(0);
 
   // Variações
   const [tamanhoInput, setTamanhoInput] = useState("");
@@ -62,32 +64,48 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
     fetchBuscaTodos();
   }, []);
 
-  // Limpar memória do preview ao desmontar
+  // Limpar memória dos previews ao desmontar
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      imagens.forEach((img) => URL.revokeObjectURL(img.previewUrl));
     };
-  }, [previewUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- HANDLERS DE ARQUIVO ---
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      processFile(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      processFiles(Array.from(e.target.files));
+      e.target.value = "";
     }
   };
 
-  const processFile = (file: File) => {
-    setImagemFile(file);
-    const objectUrl = URL.createObjectURL(file);
-    setPreviewUrl(objectUrl);
+  const processFiles = (files: File[]) => {
+    const novasImagens = files.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    setImagens((prev) => [...prev, ...novasImagens]);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      processFiles(Array.from(e.dataTransfer.files));
     }
+  };
+
+  const removeImagem = (index: number) => {
+    setImagens((prev) => {
+      URL.revokeObjectURL(prev[index].previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+    setImagemPrincipalIndex((prev) => {
+      if (index === prev) return 0;
+      if (index < prev) return prev - 1;
+      return prev;
+    });
   };
 
   // --- HANDLERS DE VARIAÇÃO ---
@@ -120,8 +138,10 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
   // --- SUBMIT PRINCIPAL ---
   const handleSubmit = async () => {
     // 1. Validação Básica
-    if (!nome || !categoriaId || !imagemFile) {
-      alert("Por favor, preencha Nome, Categoria e adicione uma Imagem.");
+    if (!nome || !categoriaId || imagens.length === 0) {
+      alert(
+        "Por favor, preencha Nome, Categoria e adicione ao menos uma Imagem.",
+      );
       return;
     }
 
@@ -158,8 +178,15 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
       // Enviamos como string JSON para evitar problemas com arrays aninhados no FormData
       formData.append("variacoes", JSON.stringify(variacoesPayload));
 
-      // Anexa o arquivo
-      formData.append("file", imagemFile);
+      // Anexa as imagens (a principal vai primeiro, pois o backend
+      // considera a primeira imagem do array como a capa do produto)
+      const imagensOrdenadas = [
+        imagens[imagemPrincipalIndex],
+        ...imagens.filter((_, i) => i !== imagemPrincipalIndex),
+      ];
+      imagensOrdenadas.forEach((img) => {
+        formData.append("files", img.file);
+      });
 
       // 3. Chamada API
       await api.post("admin/produtos", formData, {
@@ -171,9 +198,15 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
       alert("Produto criado com sucesso!");
       onClose();
       // Opcional: Recarregar lista de produtos aqui
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      alert("Erro ao criar produto.");
+      const mensagem =
+        error?.response?.data?.message ?? error?.message ?? "Erro desconhecido.";
+      alert(
+        `Erro ao criar produto: ${
+          Array.isArray(mensagem) ? mensagem.join(", ") : mensagem
+        }`,
+      );
     } finally {
       setIsLoading(false);
     }
@@ -348,6 +381,7 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
                   ref={fileInputRef}
                   onChange={handleFileSelect}
                   accept="image/*"
+                  multiple
                   hidden
                 />
 
@@ -364,7 +398,7 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
                   className={`
-                    relative border-2 border-dashed rounded-xl flex flex-col items-center justify-center p-10 transition-all cursor-pointer overflow-hidden
+                    relative border-2 border-dashed rounded-xl flex flex-col items-center justify-center p-6 transition-all cursor-pointer overflow-hidden
                     ${
                       isDragging
                         ? "border-[var(--zephira-primary)] bg-[var(--zephira-primary)]/5"
@@ -372,29 +406,58 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
                     }
                   `}
                 >
-                  {previewUrl ? (
-                    <div className="relative w-full h-48 flex items-center justify-center">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={previewUrl}
-                        alt="Preview"
-                        className="max-h-full rounded-lg shadow-md"
-                      />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-lg">
-                        <span className="text-white font-bold">
-                          Trocar Imagem
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center text-center text-gray-500">
-                      <span className="material-symbols-outlined text-3xl mb-2">
-                        cloud_upload
-                      </span>
-                      <p className="font-bold">Clique ou arraste imagem aqui</p>
-                    </div>
-                  )}
+                  <div className="flex flex-col items-center text-center text-gray-500">
+                    <span className="material-symbols-outlined text-3xl mb-2">
+                      cloud_upload
+                    </span>
+                    <p className="font-bold">
+                      Clique ou arraste imagens aqui
+                    </p>
+                    <p className="text-xs mt-1">
+                      Você pode selecionar mais de uma imagem
+                    </p>
+                  </div>
                 </div>
+
+                {imagens.length > 0 && (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-4">
+                    {imagens.map((img, index) => (
+                      <div
+                        key={img.previewUrl}
+                        onClick={() => setImagemPrincipalIndex(index)}
+                        className={`relative aspect-square rounded-lg overflow-hidden border-2 cursor-pointer group ${
+                          index === imagemPrincipalIndex
+                            ? "border-[var(--zephira-primary)]"
+                            : "border-transparent"
+                        }`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={img.previewUrl}
+                          alt={`Imagem ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        {index === imagemPrincipalIndex && (
+                          <span className="absolute top-1 left-1 bg-[var(--zephira-primary)] text-[#0f1715] text-[10px] font-bold px-1.5 py-0.5 rounded">
+                            Capa
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeImagem(index);
+                          }}
+                          className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">
+                            close
+                          </span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </section>
             </div>
 
