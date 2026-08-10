@@ -189,11 +189,11 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
       });
 
       // 3. Chamada API
-      await api.post("admin/produtos", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      // Não setar Content-Type manualmente: o axios/browser precisa gerar
+      // o header com o boundary do multipart automaticamente a partir do
+      // FormData. Setar "multipart/form-data" sem boundary quebra o parse
+      // no backend (Multer não consegue separar os campos/arquivos).
+      await api.post("admin/produtos", formData);
 
       alert("Produto criado com sucesso!");
       onClose();
