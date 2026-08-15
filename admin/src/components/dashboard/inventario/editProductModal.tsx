@@ -114,12 +114,12 @@ export function EditProductModal({
     formData.append("ds_slug", product.DS_SLUG);
 
     try {
+      // Não setar Content-Type manualmente: o axios/browser precisa gerar
+      // o header com o boundary do multipart automaticamente a partir do
+      // FormData (mesmo bug corrigido no modal de criação de produto).
       const res = await api.post(
         `admin/produtos/${product.CD_PRODUTO}/imagens`,
         formData,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
       );
 
       setImagens([...imagens, ...res.data]);
