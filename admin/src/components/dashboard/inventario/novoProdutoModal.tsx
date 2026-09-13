@@ -3,11 +3,13 @@
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "react-toastify";
 import { SimulacaoRecebimento } from "./SimulacaoRecebimento";
 
 interface NewProductModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess: () => void;
 }
 
 interface CategoriaTodos {
@@ -22,7 +24,11 @@ interface VariacaoItem {
   sku: string; // Adicionado para consistência
 }
 
-export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
+export function NewProductModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: NewProductModalProps) {
   // --- UI STATES ---
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,7 +118,7 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
   const addVariacao = () => {
     if (tamanhoInput.trim() && qtdInput.trim()) {
       if (variacoes.some((v) => v.nome === tamanhoInput.trim())) {
-        alert("Esta variação já foi adicionada.");
+        toast.warn("Esta variação já foi adicionada.");
         return;
       }
 
@@ -135,18 +141,34 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
     setVariacoes(variacoes.filter((_, i) => i !== index));
   };
 
+  // Limpa o formulário pro estado inicial (o modal fica montado entre
+  // aberturas, então sem isso a próxima vez que abrir "Novo Produto"
+  // ainda mostraria os dados do produto anterior).
+  const resetForm = () => {
+    imagens.forEach((img) => URL.revokeObjectURL(img.previewUrl));
+    setNome("");
+    setPreco("");
+    setCategoriaId("");
+    setDescricao("");
+    setImagens([]);
+    setImagemPrincipalIndex(0);
+    setTamanhoInput("");
+    setQtdInput("");
+    setVariacoes([]);
+  };
+
   // --- SUBMIT PRINCIPAL ---
   const handleSubmit = async () => {
     // 1. Validação Básica
     if (!nome || !categoriaId || imagens.length === 0) {
-      alert(
+      toast.warn(
         "Por favor, preencha Nome, Categoria e adicione ao menos uma Imagem.",
       );
       return;
     }
 
     if (variacoes.length === 0) {
-      alert("Adicione pelo menos uma variação de estoque.");
+      toast.warn("Adicione pelo menos uma variação de estoque.");
       return;
     }
 
@@ -200,14 +222,15 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
         headers: { "Content-Type": undefined },
       });
 
-      alert("Produto criado com sucesso!");
+      toast.success("Produto criado com sucesso!");
+      resetForm();
+      onSuccess();
       onClose();
-      // Opcional: Recarregar lista de produtos aqui
     } catch (error: any) {
       console.error(error);
       const mensagem =
         error?.response?.data?.message ?? error?.message ?? "Erro desconhecido.";
-      alert(
+      toast.error(
         `Erro ao criar produto: ${
           Array.isArray(mensagem) ? mensagem.join(", ") : mensagem
         }`,

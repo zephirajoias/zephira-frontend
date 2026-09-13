@@ -154,6 +154,7 @@ export default function InventoryPage() {
       <NewProductModal
         isOpen={modals.newProduct}
         onClose={() => setModals({ ...modals, newProduct: false })}
+        onSuccess={fetchInventory}
       />
       <AddVariationModal
         isOpen={modals.variation}
