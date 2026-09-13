@@ -112,7 +112,13 @@ export default function CategoriesPage() {
     if (form.imagem) formData.append("file", form.imagem);
 
     try {
-      await api.post("admin/create-categoria", formData);
+      // A instância `api` tem Content-Type: application/json como padrão
+      // global, o que faz o axios converter o FormData pra JSON (perdendo
+      // o arquivo) em vez de deixar o navegador montar o multipart com
+      // boundary. `undefined` aqui remove o padrão só nessa chamada.
+      await api.post("admin/create-categoria", formData, {
+        headers: { "Content-Type": undefined },
+      });
       toast.success("Categoria criada com sucesso!");
       setForm({ nome: "", slug: "", paiId: "", imagem: null });
       if (fileInputRef.current) fileInputRef.current.value = "";

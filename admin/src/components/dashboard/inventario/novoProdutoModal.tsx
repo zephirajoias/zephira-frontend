@@ -189,11 +189,16 @@ export function NewProductModal({ isOpen, onClose }: NewProductModalProps) {
       });
 
       // 3. Chamada API
-      // Não setar Content-Type manualmente: o axios/browser precisa gerar
-      // o header com o boundary do multipart automaticamente a partir do
-      // FormData. Setar "multipart/form-data" sem boundary quebra o parse
-      // no backend (Multer não consegue separar os campos/arquivos).
-      await api.post("admin/produtos", formData);
+      // A instância `api` tem Content-Type: application/json como padrão
+      // global (ver src/lib/api.ts). Quando esse padrão existe, o axios
+      // NÃO detecta o FormData sozinho — ele converte o FormData pra JSON
+      // (perdendo os arquivos, que viram "{}") em vez de deixar o
+      // navegador montar o multipart com o boundary. Setar o header como
+      // `undefined` aqui remove o padrão só nessa chamada, e aí sim o
+      // axios/navegador gera o Content-Type multipart correto sozinho.
+      await api.post("admin/produtos", formData, {
+        headers: { "Content-Type": undefined },
+      });
 
       alert("Produto criado com sucesso!");
       onClose();

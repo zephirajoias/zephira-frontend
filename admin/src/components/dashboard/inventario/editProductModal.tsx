@@ -114,12 +114,14 @@ export function EditProductModal({
     formData.append("ds_slug", product.DS_SLUG);
 
     try {
-      // Não setar Content-Type manualmente: o axios/browser precisa gerar
-      // o header com o boundary do multipart automaticamente a partir do
-      // FormData (mesmo bug corrigido no modal de criação de produto).
+      // A instância `api` tem Content-Type: application/json como padrão
+      // global, o que faz o axios converter o FormData pra JSON (perdendo
+      // os arquivos) em vez de deixar o navegador montar o multipart com
+      // boundary. `undefined` aqui remove o padrão só nessa chamada.
       const res = await api.post(
         `admin/produtos/${product.CD_PRODUTO}/imagens`,
         formData,
+        { headers: { "Content-Type": undefined } },
       );
 
       setImagens([...imagens, ...res.data]);
