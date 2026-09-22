@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+// Essa página só faz sentido em runtime (lendo o token de recuperação que
+// vem na URL do e-mail) — nunca deve ser pré-renderizada em build time.
+export const dynamic = "force-dynamic";
+
 type Estado = "verificando" | "pronto" | "invalido";
 
 function ResetPasswordForm() {
