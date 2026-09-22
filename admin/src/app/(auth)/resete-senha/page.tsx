@@ -1,10 +1,14 @@
 "use client";
 
-import api from "@/lib/api";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+type Estado = "verificando" | "pronto" | "invalido";
 
 function ResetPasswordForm() {
+  const [estado, setEstado] = useState<Estado>("verificando");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -12,54 +16,102 @@ function ResetPasswordForm() {
   const [error, setError] = useState("");
 
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token"); // Pega o token da URL
+
+  useEffect(() => {
+    // O Supabase lê sozinho o token que veio no link do e-mail (embutido
+    // na URL) assim que o cliente carrega, e cria uma sessão temporária
+    // de recuperação. Esse evento avisa quando isso termina.
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setEstado("pronto");
+      }
+    });
+
+    // Cobre o caso do evento acima já ter disparado antes desse listener
+    // ser registrado (corrida entre o parse da URL e o useEffect).
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setEstado((atual) => (atual === "verificando" ? "pronto" : atual));
+      }
+    });
+
+    // Se depois de alguns segundos nada aconteceu, o link não é válido
+    // (expirado, já usado, ou a página foi aberta sem vir de um e-mail).
+    const timeout = setTimeout(() => {
+      setEstado((atual) => (atual === "verificando" ? "invalido" : atual));
+    }, 4000);
+
+    return () => {
+      listener.subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, []);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
     setMessage("");
 
-    if (!token) {
-      setError("Token de recuperação inválido ou ausente na URL.");
-      setLoading(false);
-      return;
-    }
-
     if (password !== confirmPassword) {
       setError("As senhas não coincidem.");
-      setLoading(false);
       return;
     }
 
     if (password.length < 6) {
       setError("A senha deve ter pelo menos 6 caracteres.");
-      setLoading(false);
       return;
     }
 
+    setLoading(true);
+
     try {
-      // Usando seu interceptor axios
-      await api.post("/admin/reset-password", {
-        token,
-        newPassword: password,
+      const { error: updateError } = await supabase.auth.updateUser({
+        password,
       });
+
+      if (updateError) throw updateError;
 
       setMessage(
         "Senha atualizada com sucesso! Redirecionando para o login...",
       );
+
+      // Encerra a sessão de recuperação (temporária) pra forçar o login
+      // normal com a senha nova, e não deixar essa sessão viva no navegador.
+      await supabase.auth.signOut();
+
       setTimeout(() => router.push("/login"), 2000);
     } catch (err: any) {
-      // Se o NestJS mandar um 401 (token expirado), o Axios joga pra cá
-      setError(
-        err.response?.data?.message || "O link é inválido ou já expirou.",
-      );
+      setError(err.message || "Não foi possível atualizar a senha.");
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
+  if (estado === "verificando") {
+    return (
+      <div className="text-center text-slate-500 dark:text-slate-400 py-4 text-sm">
+        Validando o link de recuperação...
+      </div>
+    );
+  }
+
+  if (estado === "invalido") {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-sm font-medium rounded-lg text-center">
+          Esse link é inválido ou já expirou. Peça um novo em &quot;Esqueci
+          minha senha&quot;.
+        </div>
+        <Link
+          href="/esqueceu-senha"
+          className="flex w-full items-center justify-center rounded-lg bg-[#11d4c4] hover:bg-[#0ebcb0] text-[#111817] h-12 font-bold text-sm tracking-wide transition-colors duration-200"
+        >
+          Pedir novo link
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <form className="flex flex-col gap-6" onSubmit={handleUpdatePassword}>
@@ -147,13 +199,7 @@ export default function ResetPasswordPage() {
           </p>
         </div>
         <div className="px-8 pb-10">
-          <Suspense
-            fallback={
-              <div className="text-center text-slate-500">Carregando...</div>
-            }
-          >
-            <ResetPasswordForm />
-          </Suspense>
+          <ResetPasswordForm />
         </div>
         <div className="h-1.5 w-full bg-gradient-to-r from-transparent via-[#11d4c4]/40 to-transparent"></div>
       </div>
