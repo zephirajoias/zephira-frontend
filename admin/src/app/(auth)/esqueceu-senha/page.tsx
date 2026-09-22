@@ -25,11 +25,20 @@ export default function ForgotPasswordPage() {
       );
       setEmail("");
     } catch (err: any) {
-      // Captura a mensagem de erro que vem do NestJS, se existir
-      setError(
-        err.response?.data?.message ||
-          "Não foi possível enviar a solicitação. Verifique o endereço e tente novamente.",
-      );
+      // O servidor pode estar "dormindo" (fica ocioso e dorme depois de um
+      // tempo) — nesse caso o axios estoura o timeout em vez de travar pra
+      // sempre. Avisa que é só tentar de novo, o próximo pedido já é rápido.
+      if (err.code === "ECONNABORTED") {
+        setError(
+          "O servidor demorou pra responder (ele pode estar iniciando depois de um tempo parado). Espera uns segundos e tenta de novo — a próxima tentativa costuma ser rápida.",
+        );
+      } else {
+        // Captura a mensagem de erro que vem do NestJS, se existir
+        setError(
+          err.response?.data?.message ||
+            "Não foi possível enviar a solicitação. Verifique o endereço e tente novamente.",
+        );
+      }
       console.error(err);
     } finally {
       setLoading(false);
@@ -99,6 +108,13 @@ export default function ForgotPasswordPage() {
             >
               {loading ? "Processando..." : "Enviar Link de Recuperação"}
             </button>
+
+            {loading && (
+              <p className="text-center text-xs text-slate-400 -mt-3">
+                Pode levar até 1 minuto se o servidor estiver iniciando
+                depois de um tempo sem uso.
+              </p>
+            )}
 
             <div className="flex justify-center pt-2">
               <Link
