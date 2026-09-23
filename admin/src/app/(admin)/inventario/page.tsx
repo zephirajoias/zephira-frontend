@@ -18,6 +18,7 @@ interface InventoryItem {
   DS_TAMANHO: string;
   CD_PRODUTO: number;
   NM_PRODUTO: string;
+  DS_DESCRICAO: string;
   CD_SKU: string;
   ds_imagem_thumb: string;
   CD_CATEGORIA: number;
@@ -31,9 +32,11 @@ interface InventoryItem {
 interface GroupedProduct {
   CD_PRODUTO: number;
   NM_PRODUTO: string;
+  DS_DESCRICAO: string;
   ds_imagem_thumb: string;
   CD_CATEGORIA: number;
   NM_CATEGORIA: string;
+  VL_PRECO: number;
   total_estoque: number;
   variations: InventoryItem[];
 }
@@ -83,6 +86,17 @@ export default function InventoryPage() {
   });
 
   const [variationParent, setVariationParent] = useState<any>(null);
+  const [produtoParaDuplicar, setProdutoParaDuplicar] = useState<any>(null);
+
+  const handleDuplicar = (product: GroupedProduct) => {
+    setProdutoParaDuplicar({
+      NM_PRODUTO: product.NM_PRODUTO,
+      DS_DESCRICAO: product.DS_DESCRICAO,
+      CD_CATEGORIA: product.CD_CATEGORIA,
+      VL_PRECO: product.VL_PRECO,
+    });
+    setModals({ ...modals, newProduct: true });
+  };
   const ITEMS_PER_PAGE = 8;
 
   const fetchInventory = async () => {
@@ -109,9 +123,11 @@ export default function InventoryPage() {
         groups[item.CD_PRODUTO] = {
           CD_PRODUTO: item.CD_PRODUTO,
           NM_PRODUTO: item.NM_PRODUTO,
+          DS_DESCRICAO: item.DS_DESCRICAO,
           ds_imagem_thumb: item.ds_imagem_thumb,
           CD_CATEGORIA: item.CD_CATEGORIA,
           NM_CATEGORIA: item.NM_CATEGORIA,
+          VL_PRECO: item.VL_PRECO,
           total_estoque: 0,
           variations: [],
         };
@@ -153,7 +169,11 @@ export default function InventoryPage() {
       {/* Modais */}
       <NewProductModal
         isOpen={modals.newProduct}
-        onClose={() => setModals({ ...modals, newProduct: false })}
+        produtoBase={produtoParaDuplicar}
+        onClose={() => {
+          setModals({ ...modals, newProduct: false });
+          setProdutoParaDuplicar(null);
+        }}
         onSuccess={fetchInventory}
       />
       <AddVariationModal
@@ -192,7 +212,10 @@ export default function InventoryPage() {
           </p>
         </div>
         <button
-          onClick={() => setModals({ ...modals, newProduct: true })}
+          onClick={() => {
+            setProdutoParaDuplicar(null);
+            setModals({ ...modals, newProduct: true });
+          }}
           className="flex items-center justify-center gap-2 h-12 px-6 rounded-2xl bg-[#11d4c4] text-[#0a1615] font-black shadow-lg shadow-[#11d4c4]/20 hover:scale-[1.02] transition-all active:scale-95"
         >
           <span className="material-symbols-outlined">add_circle</span>
@@ -301,10 +324,20 @@ export default function InventoryPage() {
                         >
                           <div className="flex justify-end gap-2">
                             <button
+                              onClick={() => handleDuplicar(product)}
+                              title="Duplicar produto"
+                              className="p-2 hover:bg-slate-200/60 dark:hover:bg-white/10 text-slate-500 rounded-xl transition-all"
+                            >
+                              <span className="material-symbols-outlined">
+                                content_copy
+                              </span>
+                            </button>
+                            <button
                               onClick={() => {
                                 setVariationParent(product);
                                 setModals({ ...modals, variation: true });
                               }}
+                              title="Adicionar variação"
                               className="p-2 hover:bg-[#11d4c4]/10 text-[#11d4c4] rounded-xl transition-all"
                             >
                               <span className="material-symbols-outlined">
@@ -315,6 +348,7 @@ export default function InventoryPage() {
                               onClick={() =>
                                 setModals({ ...modals, deleteProduct: product })
                               }
+                              title="Excluir produto"
                               className="p-2 hover:bg-red-500/10 text-red-500 rounded-xl transition-all"
                             >
                               <span className="material-symbols-outlined">

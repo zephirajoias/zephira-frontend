@@ -6,11 +6,24 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { SimulacaoRecebimento } from "./SimulacaoRecebimento";
 
+interface ProdutoBase {
+  NM_PRODUTO: string;
+  DS_DESCRICAO: string;
+  CD_CATEGORIA: number;
+  VL_PRECO: number;
+}
+
 interface NewProductModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  // Preenche o formulário com os dados de um produto existente (botão
+  // "Duplicar" no inventário) — poupa reescrever nome/descrição/categoria
+  // pra itens parecidos (ex: mesmo colar em tamanhos diferentes).
+  produtoBase?: ProdutoBase | null;
 }
+
+const CHAVE_ULTIMA_CATEGORIA = "zephira_admin_ultima_categoria";
 
 interface CategoriaTodos {
   CD_CATEGORIA: number;
@@ -28,6 +41,7 @@ export function NewProductModal({
   isOpen,
   onClose,
   onSuccess,
+  produtoBase,
 }: NewProductModalProps) {
   // --- UI STATES ---
   const [isDragging, setIsDragging] = useState(false);
@@ -77,6 +91,27 @@ export function NewProductModal({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Ao abrir: se veio de "Duplicar", preenche com os dados do produto
+  // original (menos imagens/variações — isso ainda precisa ser novo).
+  // Senão, pré-seleciona a última categoria usada, pra quem cadastra
+  // vários produtos seguidos da mesma categoria não ter que escolher
+  // de novo toda vez.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (produtoBase) {
+      setNome(produtoBase.NM_PRODUTO);
+      setDescricao(produtoBase.DS_DESCRICAO ?? "");
+      setCategoriaId(String(produtoBase.CD_CATEGORIA));
+      setPreco(produtoBase.VL_PRECO ? String(produtoBase.VL_PRECO) : "");
+      return;
+    }
+
+    const ultimaCategoria = localStorage.getItem(CHAVE_ULTIMA_CATEGORIA);
+    if (ultimaCategoria) setCategoriaId(ultimaCategoria);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, produtoBase]);
 
   // --- HANDLERS DE ARQUIVO ---
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -223,6 +258,7 @@ export function NewProductModal({
       });
 
       toast.success("Produto criado com sucesso!");
+      localStorage.setItem(CHAVE_ULTIMA_CATEGORIA, categoriaId);
       resetForm();
       onSuccess();
       onClose();
@@ -248,6 +284,11 @@ export function NewProductModal({
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">
               Novo Produto
             </h2>
+            {produtoBase && (
+              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--zephira-primary)] bg-[var(--zephira-primary)]/10 px-2.5 py-1 rounded-full">
+                Duplicando de: {produtoBase.NM_PRODUTO}
+              </span>
+            )}
           </div>
           <button
             onClick={onClose}
