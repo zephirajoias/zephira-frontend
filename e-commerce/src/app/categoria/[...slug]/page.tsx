@@ -26,6 +26,8 @@ export default function ListagemProdutosPage() {
   const params = useParams();
   const pathArray = Array.isArray(params.slug) ? params.slug : [params.slug];
   const categoriaSlug = pathArray[0] as string;
+  // /categoria/colares/aco -> categoriaSlug="colares", subcategoriaSlug="aco"
+  const subcategoriaSlug = pathArray[1] as string | undefined;
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [meta, setMeta] = useState({ total: 0, page: 1, totalPages: 1 });
@@ -36,7 +38,7 @@ export default function ListagemProdutosPage() {
   useEffect(() => {
     setCarregando(true);
     setPage(1);
-  }, [categoriaSlug]);
+  }, [categoriaSlug, subcategoriaSlug]);
 
   useEffect(() => {
     let ativo = true;
@@ -44,9 +46,15 @@ export default function ListagemProdutosPage() {
     async function carregar() {
       setCarregando(true);
       try {
+        const query = new URLSearchParams({
+          page: String(page),
+          limit: "12",
+        });
+        if (subcategoriaSlug) query.set("subcategoria", subcategoriaSlug);
+
         const res = await api.get<
           ListaProdutosResponse & { categoria?: { NM_CATEGORIA: string } }
-        >(`/products/categorias/${categoriaSlug}?page=${page}&limit=12`);
+        >(`/products/categorias/${categoriaSlug}?${query.toString()}`);
 
         if (!ativo) return;
         setProdutos(res.data);
@@ -64,7 +72,7 @@ export default function ListagemProdutosPage() {
     return () => {
       ativo = false;
     };
-  }, [categoriaSlug, page]);
+  }, [categoriaSlug, subcategoriaSlug, page]);
 
   const formatMoney = (v: string | number) =>
     new Intl.NumberFormat("pt-BR", {
