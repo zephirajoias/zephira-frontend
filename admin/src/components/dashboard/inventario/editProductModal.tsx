@@ -95,9 +95,15 @@ export function EditProductModal({
       toast.success("Produto atualizado com sucesso!");
       onSuccess();
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      toast.error("Erro ao atualizar produto.");
+      const mensagem =
+        error?.response?.data?.message ?? error?.message ?? "Erro desconhecido.";
+      toast.error(
+        `Erro ao atualizar produto: ${
+          Array.isArray(mensagem) ? mensagem.join(", ") : mensagem
+        }`,
+      );
     } finally {
       setIsLoading(false);
     }
