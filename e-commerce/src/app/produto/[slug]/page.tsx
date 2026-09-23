@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { useCart } from "@/context/CartContext";
 import { api, ApiError } from "@/lib/api";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -166,12 +167,17 @@ export default function ProdutoDetalhePage() {
         <div className="flex flex-col lg:flex-row gap-10 lg:gap-16">
           {/* GALERIA */}
           <div className="w-full lg:w-1/2">
-            <div className="aspect-square rounded-[2.5rem] overflow-hidden bg-slate-50 border border-slate-100 mb-4">
-              <img
-                src={imagens[imagemAtiva]?.DS_URL}
-                alt={produto.NM_PRODUTO}
-                className="w-full h-full object-cover"
-              />
+            <div className="relative aspect-square rounded-[2.5rem] overflow-hidden bg-slate-50 border border-slate-100 mb-4">
+              {imagens[imagemAtiva]?.DS_URL && (
+                <Image
+                  src={imagens[imagemAtiva].DS_URL}
+                  alt={produto.NM_PRODUTO}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  priority
+                  className="object-cover"
+                />
+              )}
             </div>
             {imagens.length > 1 && (
               <div className="flex gap-3">
@@ -179,12 +185,14 @@ export default function ProdutoDetalhePage() {
                   <button
                     key={img.CD_IMAGEM}
                     onClick={() => setImagemAtiva(i)}
-                    className={`w-16 h-16 rounded-2xl overflow-hidden border-2 transition-all ${i === imagemAtiva ? "border-primary" : "border-slate-100"}`}
+                    className={`relative w-16 h-16 rounded-2xl overflow-hidden border-2 transition-all ${i === imagemAtiva ? "border-primary" : "border-slate-100"}`}
                   >
-                    <img
+                    <Image
                       src={img.DS_URL}
                       alt=""
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="64px"
+                      className="object-cover"
                     />
                   </button>
                 ))}

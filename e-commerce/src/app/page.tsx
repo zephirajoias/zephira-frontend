@@ -3,6 +3,7 @@
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { api } from "@/lib/api";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -183,7 +184,7 @@ export default function ZephiraHome() {
 
           {!carregandoProdutos && produtos.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-16">
-              {produtos.map((produto) => {
+              {produtos.map((produto, i) => {
                 const imagem =
                   produto.IMAGENS_PRODUTO?.[0]?.DS_URL ?? "/placeholder.png";
                 const precoFinal =
@@ -196,10 +197,13 @@ export default function ZephiraHome() {
                     className="flex flex-col group"
                   >
                     <div className="relative aspect-square mb-4 overflow-hidden rounded-[2rem] bg-white shadow-sm border border-slate-100 ring-1 ring-slate-100 group-hover:shadow-xl transition-all duration-500">
-                      <img
+                      <Image
                         src={imagem}
                         alt={produto.NM_PRODUTO}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                        fill
+                        sizes="(max-width: 640px) 50vw, 25vw"
+                        className="object-cover group-hover:scale-110 transition-transform duration-1000"
+                        loading={i < 4 ? "eager" : "lazy"}
                       />
                     </div>
                     <div className="flex flex-col items-center text-center px-2">

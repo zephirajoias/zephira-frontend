@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { api } from "@/lib/api";
 import { motion } from "motion/react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -134,10 +135,13 @@ export default function ListagemProdutosPage() {
                       className="flex flex-col group"
                     >
                       <div className="relative aspect-square mb-6 overflow-hidden rounded-[2.5rem] bg-white shadow-sm border border-slate-100 ring-1 ring-slate-100 group-hover:shadow-2xl transition-all duration-500">
-                        <img
+                        <Image
                           src={imagem}
                           alt={produto.NM_PRODUTO}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                          fill
+                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 300px"
+                          className="object-cover group-hover:scale-110 transition-transform duration-1000"
+                          loading={i < 6 ? "eager" : "lazy"}
                         />
                       </div>
 
