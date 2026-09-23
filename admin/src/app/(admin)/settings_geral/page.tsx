@@ -2,7 +2,7 @@
 
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
 
 // --- Interfaces ---
@@ -12,8 +12,8 @@ interface ConfigData {
   NR_TELEFONE: string;
   SG_MOEDA: string;
   DS_FUSO_HORARIO: string;
-  DS_LOGO: string;
-  DS_FAVICON: string;
+  DS_URL_LOGO: string;
+  DS_URL_FAVICON: string;
   // Remetente (SuperFrete)
   NM_REMETENTE: string;
   NR_CEP_REMETENTE: string;
@@ -35,8 +35,8 @@ const CONFIG_VAZIA: ConfigData = {
   NR_TELEFONE: "",
   SG_MOEDA: "BRL",
   DS_FUSO_HORARIO: "UTC-3",
-  DS_LOGO: "",
-  DS_FAVICON: "",
+  DS_URL_LOGO: "",
+  DS_URL_FAVICON: "",
   NM_REMETENTE: "",
   NR_CEP_REMETENTE: "",
   DS_ENDERECO_REMETENTE: "",
@@ -57,6 +57,11 @@ export default function SettingsGeralPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
+  const [enviandoLogo, setEnviandoLogo] = useState(false);
+  const [enviandoFavicon, setEnviandoFavicon] = useState(false);
+
   // Busca as configurações
   const fetchConfig = async () => {
     setIsLoading(true);
@@ -71,8 +76,8 @@ export default function SettingsGeralPage() {
         NR_TELEFONE: config?.NR_TELEFONE || "",
         SG_MOEDA: config?.SG_MOEDA || "BRL",
         DS_FUSO_HORARIO: config?.DS_FUSO_HORARIO || "UTC-3",
-        DS_LOGO: config?.DS_LOGO || "",
-        DS_FAVICON: config?.DS_FAVICON || "",
+        DS_URL_LOGO: config?.DS_URL_LOGO || "",
+        DS_URL_FAVICON: config?.DS_URL_FAVICON || "",
         NM_REMETENTE: config?.NM_REMETENTE || "",
         NR_CEP_REMETENTE: config?.NR_CEP_REMETENTE || "",
         DS_ENDERECO_REMETENTE: config?.DS_ENDERECO_REMETENTE || "",
@@ -115,6 +120,47 @@ export default function SettingsGeralPage() {
       toast.error("Erro ao salvar alterações.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleUploadImagemMarca = async (
+    tipo: "logo" | "favicon",
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // permite selecionar o mesmo arquivo de novo depois
+    if (!file) return;
+
+    const setEnviando = tipo === "logo" ? setEnviandoLogo : setEnviandoFavicon;
+    const campo = tipo === "logo" ? "DS_URL_LOGO" : "DS_URL_FAVICON";
+
+    setEnviando(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+
+      // A instância `api` não fixa Content-Type (ver src/lib/api.ts), mas
+      // ainda assim é preciso remover explicitamente o padrão herdado
+      // nessa chamada pra deixar o axios/navegador montar o multipart com
+      // boundary sozinho (mesmo cuidado do upload de imagem de produto).
+      const { data } = await api.post<{ url: string }>(
+        `/admin/configuracoes/${tipo}`,
+        fd,
+        { headers: { "Content-Type": undefined } },
+      );
+
+      setFormData((prev) => ({ ...prev, [campo]: data.url }));
+      setInitialData((prev) => (prev ? { ...prev, [campo]: data.url } : prev));
+      toast.success(
+        tipo === "logo" ? "Logo atualizada!" : "Favicon atualizado!",
+      );
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message ||
+          `Erro ao enviar o ${tipo === "logo" ? "logo" : "favicon"}.`,
+      );
+    } finally {
+      setEnviando(false);
     }
   };
 
@@ -500,18 +546,45 @@ export default function SettingsGeralPage() {
                   <span className="text-xs font-black uppercase text-slate-400">
                     Logo Principal
                   </span>
-                  <button className="text-[#11d4c4] text-[10px] font-black uppercase hover:underline">
-                    Alterar
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={enviandoLogo}
+                    className="text-[#11d4c4] text-[10px] font-black uppercase hover:underline disabled:opacity-50"
+                  >
+                    {enviandoLogo ? "Enviando..." : "Alterar"}
                   </button>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleUploadImagemMarca("logo", e)}
+                  />
                 </div>
-                <div className="h-32 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center bg-slate-50 dark:bg-white/2 group hover:border-[#11d4c4]/40 transition-all cursor-pointer">
-                  <span className="material-symbols-outlined text-3xl text-slate-300 group-hover:scale-110 transition-transform">
-                    image
-                  </span>
-                  <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">
-                    PNG ou SVG (Max 2MB)
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={enviandoLogo}
+                  className="w-full h-32 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center bg-slate-50 dark:bg-white/2 group hover:border-[#11d4c4]/40 transition-all cursor-pointer overflow-hidden"
+                >
+                  {formData.DS_URL_LOGO ? (
+                    <img
+                      src={formData.DS_URL_LOGO}
+                      alt="Logo da loja"
+                      className="h-full w-full object-contain p-4"
+                    />
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-3xl text-slate-300 group-hover:scale-110 transition-transform">
+                        image
+                      </span>
+                      <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">
+                        PNG (Max 2MB)
+                      </p>
+                    </>
+                  )}
+                </button>
               </div>
 
               {/* Favicon Upload */}
@@ -520,17 +593,42 @@ export default function SettingsGeralPage() {
                   <span className="text-xs font-black uppercase text-slate-400">
                     Favicon
                   </span>
-                  <button className="text-[#11d4c4] text-[10px] font-black uppercase hover:underline">
-                    Alterar
+                  <button
+                    type="button"
+                    onClick={() => faviconInputRef.current?.click()}
+                    disabled={enviandoFavicon}
+                    className="text-[#11d4c4] text-[10px] font-black uppercase hover:underline disabled:opacity-50"
+                  >
+                    {enviandoFavicon ? "Enviando..." : "Alterar"}
                   </button>
+                  <input
+                    ref={faviconInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleUploadImagemMarca("favicon", e)}
+                  />
                 </div>
-                <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-white/2 border border-slate-100 dark:border-white/5">
-                  <div className="size-12 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center shadow-sm border border-slate-100 dark:border-white/10">
-                    <span className="material-symbols-outlined text-slate-400">
-                      public
-                    </span>
+                <button
+                  type="button"
+                  onClick={() => faviconInputRef.current?.click()}
+                  disabled={enviandoFavicon}
+                  className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-white/2 border border-slate-100 dark:border-white/5 w-full hover:border-[#11d4c4]/40 transition-all"
+                >
+                  <div className="size-12 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center shadow-sm border border-slate-100 dark:border-white/10 overflow-hidden shrink-0">
+                    {formData.DS_URL_FAVICON ? (
+                      <img
+                        src={formData.DS_URL_FAVICON}
+                        alt="Favicon"
+                        className="h-full w-full object-contain"
+                      />
+                    ) : (
+                      <span className="material-symbols-outlined text-slate-400">
+                        public
+                      </span>
+                    )}
                   </div>
-                  <div>
+                  <div className="text-left">
                     <p className="text-[10px] font-black uppercase text-slate-500">
                       Ícone do Navegador
                     </p>
@@ -538,7 +636,7 @@ export default function SettingsGeralPage() {
                       Recomendado: 32x32px
                     </p>
                   </div>
-                </div>
+                </button>
               </div>
             </div>
           </section>

@@ -2,34 +2,68 @@
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { useState } from "react";
+import { api } from "@/lib/api";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+interface ProdutoDestaque {
+  CD_PRODUTO: number;
+  NM_PRODUTO: string;
+  DS_SLUG: string;
+  VL_PRECO: string;
+  VL_PRECO_PROMOCIONAL: string | null;
+  IMAGENS_PRODUTO: { DS_URL: string }[];
+}
 
 export default function ZephiraHome() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [produtos, setProdutos] = useState<ProdutoDestaque[]>([]);
+  const [carregandoProdutos, setCarregandoProdutos] = useState(true);
 
-  const categoriasMenu = [
-    "Brincos",
-    "Anéis",
-    "Colares",
-    "Pulseiras",
-    "Conjuntos",
-  ];
+  useEffect(() => {
+    let ativo = true;
+
+    api
+      .get<{ data: ProdutoDestaque[] }>("/products?limit=8")
+      .then((res) => {
+        if (ativo) setProdutos(res.data);
+      })
+      .catch(() => {
+        if (ativo) setProdutos([]);
+      })
+      .finally(() => {
+        if (ativo) setCarregandoProdutos(false);
+      });
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const formatMoney = (v: string | number) =>
+    new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(Number(v));
 
   const categoriasCirculares = [
     {
       nome: "Anéis",
+      slug: "aneis",
       img: "https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?q=80&w=400&h=400&fit=crop",
     },
     {
       nome: "Brincos",
+      slug: "brincos",
       img: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=400&h=400&fit=crop",
     },
     {
       nome: "Colares",
+      slug: "colares",
       img: "https://images.unsplash.com/photo-1599643478524-fb66f70000cb?q=80&w=400&h=400&fit=crop",
     },
     {
       nome: "Pulseiras",
+      slug: "pulseiras",
       img: "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=400&h=400&fit=crop",
     },
   ];
@@ -72,8 +106,9 @@ export default function ZephiraHome() {
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-12 justify-items-center">
             {categoriasCirculares.map((cat) => (
-              <div
+              <Link
                 key={cat.nome}
+                href={`/categoria/${cat.slug}`}
                 className="flex flex-col items-center group cursor-pointer"
               >
                 <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full border border-slate-200 p-2 group-hover:border-primary transition-colors duration-300">
@@ -88,7 +123,7 @@ export default function ZephiraHome() {
                 <span className="mt-4 text-sm sm:text-base font-bold text-text-main group-hover:text-primary transition-colors">
                   {cat.nome}
                 </span>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
@@ -118,39 +153,68 @@ export default function ZephiraHome() {
               <p className="text-sm sm:text-base font-bold mb-10 tracking-widest opacity-90">
                 Descubra nossos conjuntos
               </p>
-              <button className="bg-white/40 hover:bg-white text-bg-dark font-black uppercase tracking-widest text-sm py-4 px-10 rounded-full transition-all shadow-md hover:shadow-xl">
+              <Link
+                href="/categoria/conjuntos"
+                className="bg-white/40 hover:bg-white text-bg-dark font-black uppercase tracking-widest text-sm py-4 px-10 rounded-full transition-all shadow-md hover:shadow-xl"
+              >
                 Ver Conjuntos
-              </button>
+              </Link>
             </div>
           </div>
         </section>
 
-        {/* 7. MAIS VENDIDOS (Itens redondos idênticos à categoria) */}
+        {/* 7. NOVIDADES (produtos reais, mais recentes) */}
         <section className="py-16 sm:py-24 max-w-[1200px] mx-auto w-full px-4">
           <h2 className="text-center text-xl sm:text-2xl font-black text-text-main uppercase tracking-widest mb-12">
-            Mais Vendidos
+            Novidades
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-12 justify-items-center">
-            {categoriasCirculares.map((cat, i) => (
-              <div
-                key={i}
-                className="flex flex-col items-center group cursor-pointer"
-              >
-                <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-full border border-slate-200 p-2 group-hover:border-primary transition-colors duration-300">
-                  <div className="w-full h-full rounded-full overflow-hidden bg-slate-50">
-                    <img
-                      src={cat.img}
-                      alt={cat.nome}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  </div>
-                </div>
-                <span className="mt-4 text-sm sm:text-base font-bold text-text-main group-hover:text-primary transition-colors">
-                  {cat.nome}
-                </span>
-              </div>
-            ))}
-          </div>
+
+          {carregandoProdutos && (
+            <p className="text-center text-slate-400 font-bold py-10">
+              Carregando...
+            </p>
+          )}
+
+          {!carregandoProdutos && produtos.length === 0 && (
+            <p className="text-center text-slate-400 font-bold py-10">
+              Nenhum produto cadastrado ainda.
+            </p>
+          )}
+
+          {!carregandoProdutos && produtos.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-16">
+              {produtos.map((produto) => {
+                const imagem =
+                  produto.IMAGENS_PRODUTO?.[0]?.DS_URL ?? "/placeholder.png";
+                const precoFinal =
+                  produto.VL_PRECO_PROMOCIONAL ?? produto.VL_PRECO;
+
+                return (
+                  <Link
+                    key={produto.CD_PRODUTO}
+                    href={`/produto/${produto.DS_SLUG}`}
+                    className="flex flex-col group"
+                  >
+                    <div className="relative aspect-square mb-4 overflow-hidden rounded-[2rem] bg-white shadow-sm border border-slate-100 ring-1 ring-slate-100 group-hover:shadow-xl transition-all duration-500">
+                      <img
+                        src={imagem}
+                        alt={produto.NM_PRODUTO}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                      />
+                    </div>
+                    <div className="flex flex-col items-center text-center px-2">
+                      <h3 className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-[0.15em] mb-2 line-clamp-1 group-hover:text-primary transition-colors">
+                        {produto.NM_PRODUTO}
+                      </h3>
+                      <p className="text-base sm:text-lg font-black text-text-main tracking-tight">
+                        {formatMoney(precoFinal)}
+                      </p>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </section>
       </main>
 

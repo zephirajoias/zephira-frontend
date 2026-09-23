@@ -11,10 +11,33 @@ const manrope = Manrope({
   display: "swap",
 });
 
-export const metadata: Metadata = {
+const METADATA_BASE: Metadata = {
   title: "Zephira - Admin",
   description: "Exclusive access for store management.",
 };
+
+// Favicon é configurável em Configurações Gerais. Busca com timeout curto e
+// cai pro ícone padrão se o backend estiver fora do ar ou lento (evita
+// travar o carregamento do admin por causa disso).
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const apiUrl =
+      process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001";
+    const res = await fetch(`${apiUrl}/configuracoes/publicas`, {
+      signal: AbortSignal.timeout(4000),
+      next: { revalidate: 3600 },
+    });
+
+    if (!res.ok) return METADATA_BASE;
+
+    const config = await res.json();
+    if (!config?.DS_URL_FAVICON) return METADATA_BASE;
+
+    return { ...METADATA_BASE, icons: { icon: config.DS_URL_FAVICON } };
+  } catch {
+    return METADATA_BASE;
+  }
+}
 
 export default function RootLayout({
   children,
