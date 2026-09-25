@@ -90,6 +90,17 @@ Supabase Storage precisa estar em `images.remotePatterns` no
 `next.config.ts` do e-commerce — se aparecer imagem quebrada depois de
 trocar a URL do bucket/projeto Supabase, checar isso primeiro.
 
+## Preview de link e Google (e-commerce)
+
+As páginas de produto e categoria são `"use client"` e não podem exportar
+metadados. Título, descrição e foto do preview (WhatsApp, Instagram,
+Google) ficam no `layout.tsx` de cada segmento (`produto/[slug]`,
+`categoria/[...slug]`), que roda no servidor. `sitemap.ts` e `robots.ts`
+ficam em `src/app`. Tudo busca a API por `lib/site.ts`
+(`buscarNoServidor`), que tem timeout de 4s e volta `null` em qualquer
+falha, pra o preview nunca derrubar a página. O sitemap é
+`force-dynamic`: gerado no build, ele saía vazio.
+
 ## Cold start do Render — sempre tratar timeout na UI
 
 O backend dorme depois de ~15min sem uso; primeiro request pode levar

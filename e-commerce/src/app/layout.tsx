@@ -1,6 +1,7 @@
 import { PageTransition } from "@/components/PageTransition";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
+import { SITE_URL } from "@/lib/site";
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
@@ -15,6 +16,14 @@ const manrope = Manrope({
 
 // Configuração de SEO base para a loja
 const METADATA_BASE: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  openGraph: {
+    siteName: "Zephira Joias",
+    locale: "pt_BR",
+    type: "website",
+    title: "Zephira Joias | Elegância e Sofisticação",
+    description: "Joias em Prata 925, ouro e aço: brincos, anéis, colares e pulseiras.",
+  },
   title: "Zephira Joias | Elegância e Sofisticação",
   description:
     "Descubra a coleção exclusiva de joias em Prata 925 da Zephira. Brincos, anéis, colares e pulseiras com Frete Grátis e Garantia de 1 ano.",
