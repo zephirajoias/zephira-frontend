@@ -1,0 +1,6 @@
+node_modules
+.next
+# O .env.local do admin tem valores de desenvolvimento (localhost) que não
+# podem entrar na imagem de produção.
+.env*
+tsconfig.tsbuildinfo

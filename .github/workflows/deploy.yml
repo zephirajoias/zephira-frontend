@@ -1,0 +1,55 @@
+name: CI & Deploy
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  # O build do Next roda dentro do docker build, então isto já pega erro de
+  # código e de Dockerfile de uma vez.
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [e-commerce, admin]
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker build ${{ matrix.app }}
+        run: |
+          docker build ${{ matrix.app }} -t zephira-${{ matrix.app }}:ci \
+            --build-arg NEXT_PUBLIC_API_URL=https://api.zephirajoias.com.br \
+            --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.zephirajoias.com.br \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder
+
+  # Desligado até existir a variável de repositório DEPLOY_ENABLED=true
+  # (Settings → Secrets and variables → Actions → Variables). Precisa dos
+  # secrets VPS_HOST, VPS_USER e VPS_SSH_KEY.
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-frontend
+      cancel-in-progress: false
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 30m
+          script: |
+            set -e
+            # O .env e o nginx ficam só na VPS (ver CLAUDE.md, "Deploy").
+            cd /opt/zephira/front-end
+            git pull --ff-only origin main
+            # --wait só termina quando os healthchecks dos dois containers
+            # passam; se não passarem, o deploy falha e aparece em vermelho.
+            docker compose build
+            docker compose up -d --wait
+            docker image prune -f

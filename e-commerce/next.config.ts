@@ -1,8 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
+  // Build autocontido só no container da VPS (o Dockerfile define a
+  // variável). No Windows o standalone falha criando links simbólicos, então
+  // o build local continua no modo normal.
+  output: process.env.NEXT_STANDALONE === "1" ? "standalone" : undefined,
   images: {
     remotePatterns: [
       {
