@@ -143,7 +143,7 @@ export default function ProdutoDetalhePage() {
 
   const imagens = produto.IMAGENS_PRODUTO.length
     ? produto.IMAGENS_PRODUTO
-    : [{ CD_IMAGEM: 0, DS_URL: "/placeholder.png", SN_PRINCIPAL: "1" }];
+    : [{ CD_IMAGEM: 0, DS_URL: "/placeholder.png", SN_PRINCIPAL: "S" }];
   const variacaoAtual = produto.VARIACOES_PRODUTO.find(
     (v) => v.CD_VARIACAO === variacaoSelecionada,
   );

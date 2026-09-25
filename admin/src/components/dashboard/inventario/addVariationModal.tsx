@@ -108,7 +108,7 @@ export function AddVariationModal({
           <div className="flex items-center gap-4 p-4 bg-gray-50/80 dark:bg-white/5 rounded-xl border border-dashed border-gray-300 dark:border-white/10">
             <div className="relative size-14 rounded-lg overflow-hidden bg-white dark:bg-black/40 shadow-sm border border-gray-100 dark:border-white/5">
               <Image
-                src={product.ds_imagem_thumb || "/assets/placeholder.png"}
+                src={product.ds_imagem_thumb || "/placeholder.png"}
                 alt={product.NM_PRODUTO}
                 fill
                 className="object-cover"
