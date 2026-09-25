@@ -7,11 +7,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 // Busca na API a partir do servidor (metadados, sitemap). Timeout curto e
 // null em qualquer falha: preview de link nunca pode derrubar a página.
-export async function buscarNoServidor<T>(path: string): Promise<T | null> {
+export async function buscarNoServidor<T>(
+  path: string,
+  revalidar = 600,
+): Promise<T | null> {
   try {
     const res = await fetch(`${API_URL}${path}`, {
       signal: AbortSignal.timeout(4000),
-      next: { revalidate: 600 },
+      next: { revalidate: revalidar },
     });
     if (!res.ok) return null;
     return (await res.json()) as T;
