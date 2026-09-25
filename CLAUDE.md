@@ -10,10 +10,11 @@ Os dois consomem a mesma API (repo `zephira-backend`, NestJS, em
 `api.zephirajoias.com.br`). Ver `back-end/CLAUDE.md` pra infra e
 convenções de dados do backend.
 
-Hospedagem: em set/2026 os três (API, loja e admin) foram pra VPS da
-loja, em Docker (ver "Deploy"). Até o DNS ser trocado, a loja e o admin
-de produção continuam nos projetos Vercel `zephira-frontend-q934` (loja)
-e `zephira-frontend` (admin), e a API no Render.
+Hospedagem: desde 2026-09-25 os três (API, loja e admin) rodam na VPS
+da loja, em Docker (ver "Deploy"). O domínio sem www ainda aponta pros
+projetos Vercel `zephira-frontend-q934` (loja) e `zephira-frontend`
+(admin), que redirecionam pro www, e a API antiga ainda está no Render.
+Os dois vão ser desligados.
 
 > Este arquivo deve ser mantido atualizado. Sempre que um bug de
 > arquitetura, uma instabilidade de infra ou um padrão importante for
@@ -140,3 +141,5 @@ o sistema tinha quebrado por causa disso.
 - **2026-09-24** — Análise completa do projeto.
 - **2026-09-25** — Loja e admin empacotados em Docker (Next standalone) e
   publicados na VPS da loja, ao lado da API.
+- **2026-09-25** — DNS de `www`, `admin` e `api` trocado pra VPS. O
+  cold start do Render deixou de afetar a produção.
