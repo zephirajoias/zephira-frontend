@@ -101,6 +101,16 @@ ficam em `src/app`. Tudo busca a API por `lib/site.ts`
 falha, pra o preview nunca derrubar a página. O sitemap é
 `force-dynamic`: gerado no build, ele saía vazio.
 
+## Lentidão vem da distância, não do banco
+
+A VPS fica nos EUA (Nova York, perto do Supabase, 10 ms). Cada ida e volta
+do navegador no Brasil custa ~0,45s, mesmo num `/health` que não toca no
+banco. Por isso a regra é **poucas viagens em fila**: a categoria busca a
+1ª página no servidor (`categoria/[...slug]/page.tsx` → `Listagem.tsx`,
+que recebe `inicial`) em vez de carregar a página e só depois pedir a
+lista. A loja fala com a API pelo endereço público (0,18s de dentro da
+VPS). Tela nova: buscar no servidor sempre que der.
+
 ## Cold start do Render — sempre tratar timeout na UI
 
 O backend dorme depois de ~15min sem uso; primeiro request pode levar
@@ -154,3 +164,4 @@ o sistema tinha quebrado por causa disso.
   publicados na VPS da loja, ao lado da API.
 - **2026-09-25** — DNS de `www`, `admin` e `api` trocado pra VPS. O
   cold start do Render deixou de afetar a produção.
+- **2026-09-25** — Categoria abre com os produtos já na página (busca no servidor).
