@@ -475,8 +475,16 @@ export default function CarrinhoPage() {
                               }
                             />
                             <span>
-                              {opcao.transportadora} — até {opcao.prazoDias}{" "}
-                              dia(s) úteis
+                              {/* PAC, SEDEX e Mini Envios são todos
+                                  "Correios": o nome do serviço é o que
+                                  diferencia as opções. */}
+                              {opcao.servico}
+                              {!opcao.servico
+                                .toLowerCase()
+                                .includes(opcao.transportadora.toLowerCase()) &&
+                                ` · ${opcao.transportadora}`}{" "}
+                              — até {opcao.prazoDias}{" "}
+                              {opcao.prazoDias === 1 ? "dia útil" : "dias úteis"}
                             </span>
                           </span>
                           <span className="font-black text-text-main">

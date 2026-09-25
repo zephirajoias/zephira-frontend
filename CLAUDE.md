@@ -1,16 +1,19 @@
 # Zephira — Frontends (admin + e-commerce)
 
-Monorepo pnpm com dois apps Next.js 16 (Turbopack) separados, cada um
-com seu próprio deploy no Vercel:
+Repositório com dois apps Next.js 16 (Turbopack) independentes, cada um
+com seu `package.json` e `pnpm-lock.yaml`:
 
-- `apps/admin` → projeto Vercel `zephira-frontend` →
-  `admin.zephirajoias.com.br`
-- `apps/e-commerce` → projeto Vercel `zephira-frontend-q934` →
-  `zephirajoias.com.br` / `www.zephirajoias.com.br`
+- `admin/` → `admin.zephirajoias.com.br`
+- `e-commerce/` → `www.zephirajoias.com.br` (sem www redireciona pra www)
 
-Os dois consomem a mesma API (repo `zephira-backend`, NestJS, deploy no
-Render free tier — ver `back-end/CLAUDE.md` pra instabilidades de infra
-e convenções de dados do lado do backend).
+Os dois consomem a mesma API (repo `zephira-backend`, NestJS, em
+`api.zephirajoias.com.br`). Ver `back-end/CLAUDE.md` pra infra e
+convenções de dados do backend.
+
+Hospedagem: em set/2026 os três (API, loja e admin) foram pra VPS da
+loja, em Docker (ver "Deploy"). Até o DNS ser trocado, a loja e o admin
+de produção continuam nos projetos Vercel `zephira-frontend-q934` (loja)
+e `zephira-frontend` (admin), e a API no Render.
 
 > Este arquivo deve ser mantido atualizado. Sempre que um bug de
 > arquitetura, uma instabilidade de infra ou um padrão importante for
@@ -106,3 +109,34 @@ o sistema tinha quebrado por causa disso.
 - Upload de arquivo (produto, categoria, logo/favicon) só é validado de
   verdade testando contra o backend rodando (local ou Render) — ver
   `back-end/CLAUDE.md` pra como gerar um JWT de admin sem senha real.
+
+## Deploy (VPS da loja, em Docker)
+
+- `docker-compose.yml` na raiz deste repo sobe `loja` (`127.0.0.1:3000`)
+  e `admin` (`127.0.0.1:3002`). Na VPS o repo fica em
+  `/opt/zephira/front-end`, com um `.env` que só existe lá
+  (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_API_BASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`). Essas
+  variáveis entram no JavaScript **no build**; mudar e só reiniciar o
+  container não tem efeito, tem que rodar `docker compose build` de novo.
+- `output: "standalone"` só liga com `NEXT_STANDALONE=1`, que o
+  `Dockerfile` define. No Windows o standalone quebra criando links
+  simbólicos (`EPERM: operation not permitted, symlink`), então o build
+  local e o da Vercel continuam no modo normal.
+- O workflow `.github/workflows/deploy.yml` faz `docker build` dos dois
+  apps em todo push. O deploy por SSH só roda com a variável de
+  repositório `DEPLOY_ENABLED=true` e os secrets `VPS_HOST`, `VPS_USER`,
+  `VPS_SSH_KEY`. `docker compose up -d --wait` só termina quando os
+  healthchecks passam (loja `/`, admin `/login`).
+- nginx e HTTPS (certbot) da VPS: ver `back-end/CLAUDE.md`, "Deploy".
+- Deploy manual, na VPS:
+  ```bash
+  cd /opt/zephira/front-end && git pull --ff-only
+  docker compose build && docker compose up -d --wait
+  ```
+
+## Histórico de mudanças relevantes
+
+- **2026-09-24** — Análise completa do projeto.
+- **2026-09-25** — Loja e admin empacotados em Docker (Next standalone) e
+  publicados na VPS da loja, ao lado da API.
