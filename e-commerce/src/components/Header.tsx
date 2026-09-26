@@ -3,58 +3,83 @@
 import { Logo } from "@/components/Logo";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import { useLoja } from "@/context/LojaContext";
+import type { CategoriaArvore } from "@/lib/site";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-// Estrutura de dados baseada na sua lista
-const MENU_ESTRUTURA = [
-  {
-    nome: "Brincos",
-    slug: "brincos",
-    sub: ["Prata", "Ouro", "Aço"],
-  },
-  {
-    nome: "Colares",
-    slug: "colares",
-    sub: ["Prata", "Ouro", "Aço"],
-  },
-  {
-    nome: "Pulseiras",
-    slug: "pulseiras",
-    sub: ["Prata", "Ouro", "Aço"],
-  },
-  {
-    nome: "Anéis",
-    slug: "aneis",
-    sub: ["Prata", "Ouro", "Aço"],
-  },
-  {
-    nome: "Conjuntos",
-    slug: "conjuntos",
-    sub: ["Prata", "Ouro", "Aço"],
-  },
-  {
-    nome: "Tornozeleiras",
-    slug: "tornozeleiras",
-    sub: ["Prata", "Ouro", "Aço"],
-  },
-];
+// Nome no plural pro menu. O cadastro usa o singular ("Anel"), que é o que
+// aparece no título da categoria; categoria nova sem entrada aqui aparece
+// com o nome cadastrado.
+const NOME_NO_MENU: Record<string, string> = {
+  aneis: "Anéis",
+  brincos: "Brincos",
+  colares: "Colares",
+  pulseiras: "Pulseiras",
+  conjuntos: "Conjuntos",
+  tornozeleiras: "Tornozeleiras",
+};
 
-const CATEGORIAS_EXTRAS = [
-  { nome: "Masculino", slug: "masculino" },
-  { nome: "Feminino", slug: "feminino" },
-  { nome: "Infantil", slug: "infantil" },
-  { nome: "Prata 925", slug: "prata-925" },
-  { nome: "Folheados", slug: "folheados" },
-  { nome: "Banhados", slug: "banhados" },
-];
+function useMenu() {
+  const { categorias } = useLoja();
+  const nome = (c: CategoriaArvore) => NOME_NO_MENU[c.DS_SLUG] ?? c.NM_CATEGORIA;
+  // Categoria com subcategorias (Prata, Ouro, Aço) vira menu suspenso; as
+  // demais (Masculino, Infantil...) ficam agrupadas em "Coleções".
+  const principais = categorias
+    .filter((c) => c.other_CATEGORIA?.length)
+    .map((c) => ({
+      nome: nome(c),
+      slug: c.DS_SLUG,
+      sub: c.other_CATEGORIA!.map((f) => ({
+        nome: f.NM_CATEGORIA,
+        slug: f.DS_SLUG,
+      })),
+    }));
+  const colecoes = categorias
+    .filter((c) => !c.other_CATEGORIA?.length)
+    .map((c) => ({ nome: nome(c), slug: c.DS_SLUG }));
+  return { principais, colecoes };
+}
+
+function CampoBusca({ aoBuscar }: { aoBuscar?: () => void }) {
+  const router = useRouter();
+  const [termo, setTermo] = useState("");
+
+  return (
+    <form
+      role="search"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const q = termo.trim();
+        if (!q) return;
+        router.push(`/busca?q=${encodeURIComponent(q)}`);
+        aoBuscar?.();
+      }}
+      className="flex items-center bg-slate-100 rounded-full px-4 py-2.5 flex-1 focus-within:bg-white focus-within:ring-1 focus-within:ring-primary transition-all shadow-inner"
+    >
+      <span className="material-symbols-outlined text-text-muted mr-2 text-xl">
+        search
+      </span>
+      <input
+        type="search"
+        value={termo}
+        onChange={(e) => setTermo(e.target.value)}
+        placeholder="Buscar joias..."
+        aria-label="Buscar joias"
+        className="bg-transparent outline-none w-full text-sm font-medium text-text-main placeholder:text-text-muted"
+      />
+    </form>
+  );
+}
 
 export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMobileSub, setOpenMobileSub] = useState<string | null>(null);
   const { user } = useAuth();
   const { totalItems } = useCart();
+  const { principais: MENU_ESTRUTURA, colecoes: CATEGORIAS_EXTRAS } = useMenu();
 
   // Helper para fechar o menu mobile ao clicar em um link
   const closeMenu = () => {
@@ -107,14 +132,11 @@ export function Header() {
                   <div className="py-2 flex flex-col">
                     {item.sub.map((subItem) => (
                       <Link
-                        key={subItem}
-                        href={`/categoria/${item.slug}/${subItem
-                          .toLowerCase()
-                          .normalize("NFD")
-                          .replace(/[\u0300-\u036f]/g, "")}`}
+                        key={subItem.slug}
+                        href={`/categoria/${item.slug}/${subItem.slug}`}
                         className="px-5 py-3 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors border-b border-slate-50 last:border-0"
                       >
-                        {item.nome} em {subItem}
+                        {item.nome} em {subItem.nome}
                       </Link>
                     ))}
                   </div>
@@ -122,6 +144,7 @@ export function Header() {
               </div>
             ))}
 
+            {CATEGORIAS_EXTRAS.length > 0 && (
             <div className="relative group h-24 flex items-center">
               <span className="flex items-center gap-0.5 text-[13px] font-bold text-text-main cursor-default uppercase tracking-wider group-hover:text-primary">
                 Coleções
@@ -143,19 +166,13 @@ export function Header() {
                 </div>
               </div>
             </div>
+            )}
           </nav>
 
           {/* LADO DIREITO: Busca e Ícones */}
           <div className="flex items-center gap-3 lg:gap-5 flex-1 justify-end lg:flex-none lg:w-[320px]">
-            <div className="hidden sm:flex items-center bg-slate-100 rounded-full px-4 py-2.5 flex-1 focus-within:bg-white focus-within:ring-1 focus-within:ring-primary transition-all shadow-inner">
-              <span className="material-symbols-outlined text-text-muted mr-2 text-xl">
-                search
-              </span>
-              <input
-                type="text"
-                placeholder="Buscar joias..."
-                className="bg-transparent outline-none w-full text-sm font-medium text-text-main placeholder:text-text-muted"
-              />
+            <div className="hidden sm:flex flex-1">
+              <CampoBusca />
             </div>
 
             <div className="flex items-center gap-3 shrink-0">
@@ -201,6 +218,9 @@ export function Header() {
       {isMobileMenuOpen && (
         <div className="lg:hidden border-t border-slate-100 bg-white absolute w-full h-[calc(100vh-80px)] overflow-y-auto shadow-2xl animate-in slide-in-from-top-2">
           <div className="p-4 space-y-2">
+            <div className="flex pb-2">
+              <CampoBusca aoBuscar={closeMenu} />
+            </div>
             {/* LINK DE USUÁRIO NO MENU MOBILE PARA FACILITAR O ACESSO */}
             <Link
               href={user ? "/minha-conta" : "/login"}
@@ -240,15 +260,12 @@ export function Header() {
                     </Link>
                     {item.sub.map((sub) => (
                       <Link
-                        key={sub}
-                        href={`/categoria/${item.slug}/${sub
-                          .toLowerCase()
-                          .normalize("NFD")
-                          .replace(/[\u0300-\u036f]/g, "")}`}
+                        key={sub.slug}
+                        href={`/categoria/${item.slug}/${sub.slug}`}
                         onClick={closeMenu}
                         className="px-6 py-3 text-xs font-bold text-slate-500 border-b border-white last:border-0"
                       >
-                        {item.nome} em {sub}
+                        {item.nome} em {sub.nome}
                       </Link>
                     ))}
                   </div>
@@ -256,9 +273,11 @@ export function Header() {
               </div>
             ))}
 
-            <div className="pt-4 pb-2 px-2 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
-              Coleções
-            </div>
+            {CATEGORIAS_EXTRAS.length > 0 && (
+              <div className="pt-4 pb-2 px-2 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
+                Coleções
+              </div>
+            )}
             {CATEGORIAS_EXTRAS.map((extra) => (
               <Link
                 key={extra.nome}

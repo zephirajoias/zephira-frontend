@@ -149,11 +149,14 @@ export default function CarrinhoPage() {
         CD_SERVICO_FRETE: freteSelecionado,
       });
 
-      clearCart();
-
+      // O carrinho continua cheio enquanto o cliente está no Mercado Pago:
+      // se ele desistir e voltar, não perde o que escolheu. Ele é esvaziado
+      // em /minha-conta?pedido=..., pra onde o Mercado Pago devolve quem
+      // concluiu o pagamento (aprovado ou aguardando).
       if (pedido.checkoutUrl) {
         window.location.href = pedido.checkoutUrl;
       } else {
+        clearCart();
         router.push(`/minha-conta?pedido=${pedido.CD_PEDIDO}`);
       }
     } catch (err) {

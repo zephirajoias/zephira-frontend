@@ -1,4 +1,5 @@
 import { buscarNoServidor, SITE_URL, type CategoriaArvore } from "@/lib/site";
+import { PAGINAS_INSTITUCIONAIS } from "@/components/PaginaInstitucional";
 import type { MetadataRoute } from "next";
 
 // Lista de páginas pro Google. Gerada na hora do acesso (as buscas na API
@@ -15,6 +16,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const paginas: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: "daily", priority: 1 },
   ];
+
+  for (const { slug } of PAGINAS_INSTITUCIONAIS) {
+    paginas.push({ url: `${SITE_URL}/${slug}`, changeFrequency: "monthly", priority: 0.3 });
+  }
 
   for (const pai of categorias ?? []) {
     paginas.push({

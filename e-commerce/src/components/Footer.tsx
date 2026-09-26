@@ -1,9 +1,19 @@
 "use client";
 
 import { Logo } from "@/components/Logo";
+import { useLoja } from "@/context/LojaContext";
 import Link from "next/link";
 
 export function Footer() {
+  const { config } = useLoja();
+  // Decreto 7.962/2013: loja online precisa mostrar razão social, CNPJ e
+  // endereço. Aparece assim que for preenchido em Configurações Gerais.
+  const dadosEmpresa = [
+    config?.NM_RAZAO_SOCIAL,
+    config?.NR_CNPJ && `CNPJ ${config.NR_CNPJ}`,
+    config?.DS_ENDERECO_LOJA,
+  ].filter(Boolean);
+
   return (
     <footer className="bg-primary text-bg-dark pt-16 pb-8 border-t border-primary/20">
       <div className="max-w-[1400px] mx-auto px-6 lg:px-8">
@@ -12,7 +22,7 @@ export function Footer() {
           {/* Coluna 1: Logo */}
           <div className="flex flex-col items-center lg:items-start">
             <div className="w-36 h-36 bg-white rounded-full flex flex-col items-center justify-center shadow-xl mb-4 overflow-hidden p-4">
-              <Logo className="text-base" />
+              <Logo className="text-base" altura={72} />
             </div>
             <p className="text-xs font-bold opacity-80 text-center lg:text-left mt-2 px-4 lg:px-0 leading-relaxed">
               A beleza atemporal da prata 925 em joias feitas para realçar o seu
@@ -127,9 +137,16 @@ export function Footer() {
             </div>
           </div>
 
-          <div className="text-[10px] font-bold opacity-60 text-center uppercase tracking-wider">
-            © {new Date().getFullYear()} Zephira Joias. Todos os direitos
-            reservados.
+          <div className="text-[10px] font-bold opacity-60 text-center uppercase tracking-wider flex flex-col gap-1">
+            <span>
+              © {new Date().getFullYear()} {config?.NM_LOJA || "Zephira Joias"}.
+              Todos os direitos reservados.
+            </span>
+            {dadosEmpresa.length > 0 && (
+              <span className="normal-case tracking-normal">
+                {dadosEmpresa.join(" · ")}
+              </span>
+            )}
           </div>
 
           {/* Selos de Segurança (Mock) */}
@@ -143,12 +160,6 @@ export function Footer() {
                   lock
                 </span>{" "}
                 SSL
-              </div>
-              <div className="flex items-center gap-1 bg-white/20 px-2 py-1 rounded text-[10px] font-black">
-                <span className="material-symbols-outlined text-[14px]">
-                  verified_user
-                </span>{" "}
-                Google Safe
               </div>
             </div>
           </div>

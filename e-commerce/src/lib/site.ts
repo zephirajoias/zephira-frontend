@@ -5,20 +5,28 @@ export const SITE_URL =
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-// Busca na API a partir do servidor (metadados, sitemap). Timeout curto e
-// null em qualquer falha: preview de link nunca pode derrubar a página.
+// No build, várias páginas buscam na API ao mesmo tempo e a primeira
+// resposta pode demorar; 4s já fez a home sair vazia. Em produção, 4s.
+const NO_BUILD = process.env.NEXT_PHASE === "phase-production-build";
+
+// Busca na API a partir do servidor (páginas, metadados, sitemap). Null em
+// qualquer falha: a página sai sem aquele dado em vez de quebrar.
 export async function buscarNoServidor<T>(
   path: string,
   revalidar = 600,
 ): Promise<T | null> {
   try {
     const res = await fetch(`${API_URL}${path}`, {
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(NO_BUILD ? 15000 : 4000),
       next: { revalidate: revalidar },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[api] ${path} respondeu ${res.status}`);
+      return null;
+    }
     return (await res.json()) as T;
-  } catch {
+  } catch (err) {
+    console.warn(`[api] ${path} falhou: ${String(err)}`);
     return null;
   }
 }

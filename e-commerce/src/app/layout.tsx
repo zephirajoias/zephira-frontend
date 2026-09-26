@@ -1,6 +1,8 @@
 import { PageTransition } from "@/components/PageTransition";
 import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
+import { LojaProvider } from "@/context/LojaContext";
+import { carregarDadosLoja } from "@/lib/loja";
 import { SITE_URL } from "@/lib/site";
 import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
@@ -26,7 +28,7 @@ const METADATA_BASE: Metadata = {
   },
   title: "Zephira Joias | Elegância e Sofisticação",
   description:
-    "Descubra a coleção exclusiva de joias em Prata 925 da Zephira. Brincos, anéis, colares e pulseiras com Frete Grátis e Garantia de 1 ano.",
+    "Descubra a coleção exclusiva de joias em Prata 925 da Zephira. Brincos, anéis, colares e pulseiras com Garantia de 1 ano.",
   keywords: ["Joias", "Prata 925", "Anéis", "Colares", "Zephira", "Semijoias"],
 };
 
@@ -52,25 +54,27 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-// Viewport otimizado para e-commerce (evita que o usuário dê zoom ao clicar em inputs no iPhone)
+// Zoom liberado (acessibilidade). O zoom automático do iPhone ao tocar num
+// campo é evitado pela fonte de 16px nos campos, em globals.css.
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const dadosLoja = await carregarDadosLoja();
+
   return (
     <html lang="pt-BR" className="scroll-smooth">
       <head>
-        {/* Importação dos ícones do Material Symbols (Versão Outlined que combinam com o design clean) */}
+        {/* Ícones Material Symbols. display=block: até a fonte carregar o ícone
+            fica invisível, em vez de aparecer a palavra ("shopping_cart"). */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL,GRAD@100..700,0..1,-50..200&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL,GRAD@100..700,0..1,-50..200&display=block"
           rel="stylesheet"
         />
       </head>
@@ -85,11 +89,13 @@ export default function RootLayout({
           min-h-screen
         `}
       >
-        <AuthProvider>
-          <CartProvider>
-            <PageTransition>{children}</PageTransition>
-          </CartProvider>
-        </AuthProvider>
+        <LojaProvider value={dadosLoja}>
+          <AuthProvider>
+            <CartProvider>
+              <PageTransition>{children}</PageTransition>
+            </CartProvider>
+          </AuthProvider>
+        </LojaProvider>
       </body>
     </html>
   );

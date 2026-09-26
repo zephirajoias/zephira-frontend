@@ -45,3 +45,33 @@ input::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* iPhone dá zoom sozinho ao tocar num campo com fonte menor que 16px.
+   Com o zoom liberado no viewport, isso evita o salto na tela. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Páginas institucionais (sobre, trocas, garantia...) */
+.institucional h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--color-text-main, #0f172a);
+  margin-top: 2rem;
+  text-wrap: balance;
+}
+.institucional ul.lista,
+.institucional ol.lista {
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.institucional ul.lista { list-style: disc; }
+.institucional ol.lista { list-style: decimal; }
+.institucional strong { color: var(--color-text-main, #0f172a); }
+.institucional a { color: inherit; text-decoration: underline; }

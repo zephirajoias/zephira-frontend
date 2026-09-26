@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
 import { api, ApiError } from "@/lib/api";
+import { useCart } from "@/context/CartContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -55,6 +56,13 @@ function MinhaContaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pedidoRecemCriado = searchParams.get("pedido");
+  const { clearCart } = useCart();
+
+  // Voltou do Mercado Pago com o pedido feito: agora sim esvazia o carrinho.
+  useEffect(() => {
+    if (pedidoRecemCriado) clearCart();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedidoRecemCriado]);
 
   const [activeTab, setActiveTab] = useState("pedidos");
   const [pedidos, setPedidos] = useState<Pedido[]>([]);

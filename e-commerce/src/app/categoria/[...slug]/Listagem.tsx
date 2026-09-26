@@ -2,21 +2,14 @@
 
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { ProdutoCard, type ProdutoResumo } from "@/components/ProdutoCard";
 import { api } from "@/lib/api";
 import { motion } from "motion/react";
-import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-interface Produto {
-  CD_PRODUTO: number;
-  NM_PRODUTO: string;
-  DS_SLUG: string;
-  VL_PRECO: string;
-  VL_PRECO_PROMOCIONAL: string | null;
-  IMAGENS_PRODUTO: { DS_URL: string }[];
-}
+type Produto = ProdutoResumo;
 
 interface ListaProdutosResponse {
   data: Produto[];
@@ -99,11 +92,6 @@ export default function ListagemProdutosPage({
     };
   }, [categoriaSlug, subcategoriaSlug, page]);
 
-  const formatMoney = (v: string | number) =>
-    new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(Number(v));
 
   return (
     <div className="min-h-screen bg-white font-display text-text-main flex flex-col">
@@ -140,54 +128,16 @@ export default function ListagemProdutosPage({
             )}
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-12 sm:gap-x-8 sm:gap-y-20">
-              {produtos.map((produto, i) => {
-                const imagem =
-                  produto.IMAGENS_PRODUTO?.[0]?.DS_URL ??
-                  "/placeholder.png";
-                const precoFinal =
-                  produto.VL_PRECO_PROMOCIONAL ?? produto.VL_PRECO;
-
-                return (
-                  <motion.div
-                    key={produto.CD_PRODUTO}
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: Math.min(i, 8) * 0.06 }}
-                  >
-                    <Link
-                      href={`/produto/${produto.DS_SLUG}`}
-                      className="flex flex-col group"
-                    >
-                      <div className="relative aspect-square mb-6 overflow-hidden rounded-[2.5rem] bg-white shadow-sm border border-slate-100 ring-1 ring-slate-100 group-hover:shadow-2xl transition-all duration-500">
-                        <Image
-                          src={imagem}
-                          alt={produto.NM_PRODUTO}
-                          fill
-                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 300px"
-                          className="object-cover group-hover:scale-110 transition-transform duration-1000"
-                          loading={i < 6 ? "eager" : "lazy"}
-                        />
-                      </div>
-
-                      <div className="flex flex-col items-center text-center px-2">
-                        <h3 className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-[0.15em] mb-3 line-clamp-1 group-hover:text-primary transition-colors">
-                          {produto.NM_PRODUTO}
-                        </h3>
-                        <div className="space-y-1">
-                          <p className="text-lg sm:text-xl font-black text-text-main tracking-tight">
-                            {formatMoney(precoFinal)}
-                          </p>
-                          {produto.VL_PRECO_PROMOCIONAL && (
-                            <p className="text-[10px] font-bold text-slate-400 line-through">
-                              {formatMoney(produto.VL_PRECO)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </Link>
-                  </motion.div>
-                );
-              })}
+              {produtos.map((produto, i) => (
+                <motion.div
+                  key={produto.CD_PRODUTO}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: Math.min(i, 8) * 0.06 }}
+                >
+                  <ProdutoCard produto={produto} prioridade={i < 3} />
+                </motion.div>
+              ))}
             </div>
 
             {/* Paginação */}

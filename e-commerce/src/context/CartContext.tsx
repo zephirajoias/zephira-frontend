@@ -81,7 +81,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const clearCart = () => setItems([]);
+  // Apaga também o salvo no navegador: quem chama (ex: /minha-conta ao
+  // voltar do pagamento) pode rodar antes do carrinho ser recarregado, e aí
+  // o carregamento traria os itens de volta.
+  const clearCart = () => {
+    try {
+      localStorage.removeItem("zephira_cart");
+    } catch {}
+    setItems([]);
+  };
 
   const totalItems = items.reduce((acc, i) => acc + i.quantidade, 0);
   const totalPrice = items.reduce(
