@@ -111,6 +111,24 @@ que recebe `inicial`) em vez de carregar a página e só depois pedir a
 lista. A loja fala com a API pelo endereço público (0,18s de dentro da
 VPS). Tela nova: buscar no servidor sempre que der.
 
+## Dados da loja no servidor (e-commerce)
+
+O layout raiz busca a configuração pública e a árvore de categorias
+(`lib/loja.ts` → `carregarDadosLoja`) e entrega pelo `LojaContext`. Header
+(menu vem das categorias, com nome no plural em `NOME_NO_MENU`), rodapé,
+logo e `ProdutoCard` leem daí, sem pedido extra à API. Home, categoria,
+produto, busca e páginas institucionais são montadas no servidor. Campo
+comercial que não vier da API (frete grátis, parcelas, CNPJ) **não
+aparece**: a loja nunca inventa um valor. Parcelas "sem juros" (3x por
+padrão, parcela mínima R$ 10) só são verdade se a conta do Mercado Pago
+tiver o parcelamento sem juros ligado.
+
+`buscarNoServidor` (`lib/site.ts`) usa timeout de 15s durante o build e 4s
+em produção: com 4s no build a home já saiu vazia uma vez.
+
+Carrinho: só é esvaziado em `/minha-conta?pedido=...` (volta do Mercado
+Pago), não antes de ir pagar. `clearCart` apaga também o `localStorage`.
+
 ## Cold start do Render — sempre tratar timeout na UI
 
 O backend dorme depois de ~15min sem uso; primeiro request pode levar
@@ -165,3 +183,7 @@ o sistema tinha quebrado por causa disso.
 - **2026-09-25** — DNS de `www`, `admin` e `api` trocado pra VPS. O
   cold start do Render deixou de afetar a produção.
 - **2026-09-25** — Categoria abre com os produtos já na página (busca no servidor).
+- **2026-09-26** — Loja montada no servidor (home com fotos das peças,
+  produto com dados estruturados), menu das categorias, busca, card único
+  com parcelas, páginas institucionais, carrinho só esvazia depois do
+  pagamento, zoom liberado. Admin sem `alert()` e sem telas de exemplo.
