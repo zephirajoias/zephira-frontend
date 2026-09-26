@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "react-toastify";
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 
@@ -19,12 +20,12 @@ export function DeleteCategoryModal({
   const handleDelete = async () => {
     try {
       await api.delete(`admin/delete-categoria/${category.CD_CATEGORIA}`);
-      alert("Categoria excluída com sucesso.");
+      toast.success("Categoria excluída com sucesso.");
       onSuccess();
       onClose();
     } catch (error) {
       console.error(error);
-      alert("Erro ao excluir. Verifique se há produtos vinculados.");
+      toast.error("Erro ao excluir. Verifique se há produtos vinculados.");
     }
   };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "react-toastify";
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { useEffect, useState } from "react";
@@ -35,12 +36,12 @@ export function EditCategoryModal({
         NM_CATEGORIA: nome,
         DS_SLUG: slug,
       });
-      alert("Categoria atualizada!");
+      toast.success("Categoria atualizada!");
       onSuccess();
       onClose();
     } catch (error) {
       console.error(error);
-      alert("Erro ao atualizar.");
+      toast.error("Erro ao atualizar.");
     }
   };
 

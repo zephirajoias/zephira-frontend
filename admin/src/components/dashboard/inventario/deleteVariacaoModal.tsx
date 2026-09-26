@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "react-toastify";
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { useState } from "react";
@@ -32,7 +33,7 @@ export function DeleteVariacaoModal({
       }, 300);
     } catch (error) {
       console.error(error);
-      alert("Erro ao excluir variação.");
+      toast.error("Erro ao excluir variação.");
       setIsLoading(false);
     }
   };

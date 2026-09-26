@@ -18,7 +18,6 @@ export default function SettingsPage() {
           icon: "category",
           color: "teal",
           href: "/categories",
-          badge: "12 Ativas",
         },
         {
           title: "Promoções e Ofertas",
@@ -27,20 +26,11 @@ export default function SettingsPage() {
           icon: "percent",
           color: "blue",
           href: "/promocoes",
-          badge: "2 Rodando",
-        },
-        {
-          title: "Envio e Taxas",
-          description:
-            "Configure zonas de entrega, tarifas de frete e cálculos de impostos.",
-          icon: "local_shipping",
-          color: "amber",
-          href: "/shipping",
         },
         {
           title: "Taxas de Pagamento",
           description:
-            "Ajuste as taxas do Mercado Pago usadas para simular quanto você recebe por PIX e cartão.",
+            "Ajuste as taxas do Mercado Pago usadas para simular quanto você recebe por PIX e cartão. Ficam salvas neste navegador.",
           icon: "payments",
           color: "teal",
           href: "/settings/pagamento",
@@ -53,26 +43,10 @@ export default function SettingsPage() {
         {
           title: "Configuração Geral",
           description:
-            "Detalhes globais da loja, moeda padrão, idiomas e configurações de SEO.",
+            "Nome, logo, favicon, contato da loja e endereço de envio e pacote padrão usados no cálculo do frete.",
           icon: "settings_applications",
           color: "slate",
           href: "/settings_geral",
-        },
-        {
-          title: "Integrações",
-          description:
-            "Conecte gateways de pagamento, analytics e redes sociais.",
-          icon: "extension",
-          color: "indigo",
-          href: "/integracoes",
-        },
-        {
-          title: "Segurança e Logs",
-          description:
-            "Histórico de acessos, chaves de API e backups do sistema.",
-          icon: "admin_panel_settings",
-          color: "red",
-          href: "/seguranca",
         },
       ],
     },
@@ -165,7 +139,6 @@ export default function SettingsPage() {
                       iconBg={bgMap[item.color] || bgMap.slate}
                       iconColor={colorMap[item.color] || colorMap.slate}
                       primaryAction="Gerenciar" // Nome do botão que o TS estava pedindo
-                      badgeText={item.badge}
                     />
                   );
                 })}
