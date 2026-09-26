@@ -183,7 +183,10 @@ o sistema tinha quebrado por causa disso.
 - **2026-09-25** — DNS de `www`, `admin` e `api` trocado pra VPS. O
   cold start do Render deixou de afetar a produção.
 - **2026-09-25** — Categoria abre com os produtos já na página (busca no servidor).
-- **2026-09-26** — Loja montada no servidor (home com fotos das peças,
-  produto com dados estruturados), menu das categorias, busca, card único
+- **2026-09-26** — Loja montada no servidor (produto com dados
+  estruturados), menu das categorias, busca, card único
   com parcelas, páginas institucionais, carrinho só esvazia depois do
   pagamento, zoom liberado. Admin sem `alert()` e sem telas de exemplo.
+- **2026-09-26** — Banner, "Navegue por Categorias" e "Combinações
+  Perfeitas" da home voltaram às fotos e categorias originais, a pedido da
+  loja. Visual da vitrine é decisão da loja: não trocar sem pedir.
