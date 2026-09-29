@@ -1,7 +1,7 @@
 "use client";
 
 import { useLoja } from "@/context/LojaContext";
-import { formatarPreco, parcelasSemJuros } from "@/lib/formato";
+import { descontoPromocao, formatarPreco, parcelasSemJuros } from "@/lib/formato";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -30,6 +30,7 @@ export function ProdutoCard({
   const imagem = produto.IMAGENS_PRODUTO?.[0]?.DS_URL ?? "/placeholder.png";
   const precoFinal = produto.VL_PRECO_PROMOCIONAL ?? produto.VL_PRECO;
   const parcelas = parcelasSemJuros(precoFinal, config?.NR_PARCELAS_SEM_JUROS);
+  const desconto = descontoPromocao(produto.VL_PRECO, produto.VL_PRECO_PROMOCIONAL);
 
   return (
     <Link href={`/produto/${produto.DS_SLUG}`} className="flex flex-col group">
@@ -42,19 +43,28 @@ export function ProdutoCard({
           className="object-cover group-hover:scale-110 transition-transform duration-1000"
           priority={prioridade}
         />
+        {desconto && (
+          <span className="absolute top-3 right-3 z-10 flex items-center justify-center w-12 h-12 rounded-full bg-red-600 text-white text-xs font-black shadow-md">
+            -{desconto}%
+          </span>
+        )}
       </div>
       <div className="flex flex-col items-center text-center px-1">
         <h3 className="text-sm leading-snug font-semibold text-slate-600 mb-2 line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors">
           {produto.NM_PRODUTO}
         </h3>
-        <p className="text-lg sm:text-xl font-black text-text-main tracking-tight">
-          {formatarPreco(precoFinal)}
-        </p>
-        {produto.VL_PRECO_PROMOCIONAL && (
-          <p className="text-xs font-bold text-slate-400 line-through">
-            {formatarPreco(produto.VL_PRECO)}
+        {/* Promoção: "de R$ 59,99 por" em cima do preço, pro cliente ver
+            que baixou (pedido da loja em set/2026). */}
+        {desconto && (
+          <p className="text-xs font-medium text-slate-400">
+            de <s>{formatarPreco(produto.VL_PRECO)}</s> por
           </p>
         )}
+        <p
+          className={`text-lg sm:text-xl font-black tracking-tight ${desconto ? "text-red-600" : "text-text-main"}`}
+        >
+          {formatarPreco(precoFinal)}
+        </p>
         {parcelas && (
           <p className="text-xs font-medium text-slate-500 mt-1">
             ou {parcelas.vezes}x de {parcelas.valor} sem juros

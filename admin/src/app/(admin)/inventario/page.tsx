@@ -24,6 +24,7 @@ interface InventoryItem {
   CD_CATEGORIA: number;
   NM_CATEGORIA: string;
   VL_PRECO: number;
+  VL_PRECO_PROMOCIONAL?: number | null;
   QT_ESTOQUE: number;
   ds_status_texto: string;
   ds_css_status: string;
@@ -402,8 +403,24 @@ export default function InventoryPage() {
                                             {variant.DS_TAMANHO}
                                           </td>
                                           <td className="p-3 font-medium text-slate-600 dark:text-slate-300">
-                                            {formatter.format(
-                                              Number(variant.VL_PRECO || 0),
+                                            {Number(variant.VL_PRECO_PROMOCIONAL) > 0 &&
+                                            Number(variant.VL_PRECO_PROMOCIONAL) <
+                                              Number(variant.VL_PRECO) ? (
+                                              <span className="flex flex-col leading-tight">
+                                                <span className="text-[10px] text-slate-400 line-through">
+                                                  {formatter.format(Number(variant.VL_PRECO))}
+                                                </span>
+                                                <span className="font-black text-red-600">
+                                                  {formatter.format(
+                                                    Number(variant.VL_PRECO_PROMOCIONAL),
+                                                  )}{" "}
+                                                  <span className="text-[9px] uppercase">promo</span>
+                                                </span>
+                                              </span>
+                                            ) : (
+                                              formatter.format(
+                                                Number(variant.VL_PRECO || 0),
+                                              )
                                             )}
                                           </td>
                                           <td className="p-3 text-center font-black">

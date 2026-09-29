@@ -39,6 +39,7 @@ export function EditProductModal({
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [preco, setPreco] = useState("");
+  const [promocao, setPromocao] = useState("");
   const [sku, setSku] = useState("");
   const [tamanho, setTamanho] = useState<string>("");
   const [estoque, setEstoque] = useState<string>("");
@@ -64,6 +65,9 @@ export function EditProductModal({
       setNome(product.NM_PRODUTO ?? "");
       setDescricao(product.DS_DESCRICAO ?? "");
       setPreco(product.VL_PRECO ? String(product.VL_PRECO) : "");
+      setPromocao(
+        product.VL_PRECO_PROMOCIONAL ? String(product.VL_PRECO_PROMOCIONAL) : "",
+      );
       setSku(product.CD_SKU ?? "");
       setTamanho(product.DS_TAMANHO ? String(product.DS_TAMANHO) : "");
       setEstoque(product.QT_ESTOQUE ? String(product.QT_ESTOQUE) : "");
@@ -72,8 +76,21 @@ export function EditProductModal({
     }
   }, [product]);
 
+  const precoNormal = Number(preco) || 0;
+  const precoPromo = Number(promocao) || 0;
+  const promocaoValida = precoPromo > 0 && precoPromo < precoNormal;
+  const descontoPct = promocaoValida
+    ? Math.round((1 - precoPromo / precoNormal) * 100)
+    : 0;
+  const real = (v: number) =>
+    v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (precoPromo > 0 && !promocaoValida) {
+      toast.error("O preço promocional precisa ser menor que o preço normal.");
+      return;
+    }
     setIsLoading(true);
     try {
       // 1. Atualiza dados do produto
@@ -81,6 +98,8 @@ export function EditProductModal({
         NM_PRODUTO: nome,
         DS_DESCRICAO: descricao,
         VL_PRECO: parseFloat(preco),
+        // Vazio tira a promoção.
+        VL_PRECO_PROMOCIONAL: precoPromo > 0 ? precoPromo : null,
         CD_CATEGORIA: parseInt(categoriaId, 10),
       });
 
@@ -296,7 +315,56 @@ export function EditProductModal({
               </div>
             </div>
 
-            <SimulacaoRecebimento preco={Number(preco) || 0} />
+            {/* Preço promocional: a loja mostra "de/por" e o selo de desconto */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-gray-400">
+                <Tag size={12} /> Preço promocional (opcional)
+              </label>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={promocao}
+                  onChange={(e) => setPromocao(e.target.value)}
+                  placeholder="Sem promoção"
+                  className="flex-1 min-w-[140px] h-12 rounded-xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-black/20 px-4 text-sm font-bold focus:ring-2 focus:ring-[var(--zephira-primary)] outline-none text-gray-900 dark:text-white"
+                />
+                {promocao && (
+                  <button
+                    type="button"
+                    onClick={() => setPromocao("")}
+                    className="h-12 px-4 rounded-xl border border-gray-200 dark:border-white/10 text-xs font-bold text-gray-500 hover:text-red-500 hover:border-red-300 transition-colors"
+                  >
+                    Tirar promoção
+                  </button>
+                )}
+              </div>
+              {promocaoValida ? (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="inline-block rounded-full bg-red-600 text-white font-black px-2 py-0.5 mr-2">
+                    -{descontoPct}%
+                  </span>
+                  Na loja: de <s>{real(precoNormal)}</s> por{" "}
+                  <strong className="text-gray-900 dark:text-white">
+                    {real(precoPromo)}
+                  </strong>
+                </p>
+              ) : precoPromo > 0 ? (
+                <p className="text-xs font-bold text-red-500">
+                  Precisa ser menor que o preço normal ({real(precoNormal)}).
+                </p>
+              ) : (
+                <p className="text-xs text-gray-400">
+                  Preencha pra colocar a peça em promoção. Vazio = preço normal.
+                </p>
+              )}
+            </div>
+
+            {/* Simula o que a loja recebe pelo preço que o cliente paga */}
+            <SimulacaoRecebimento
+              preco={promocaoValida ? precoPromo : precoNormal}
+            />
 
             {/* Descrição */}
             <div className="space-y-2">

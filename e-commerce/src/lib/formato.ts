@@ -21,3 +21,17 @@ export function parcelasSemJuros(
   if (!total || vezes < 2) return null;
   return { vezes, valor: formatarPreco(total / vezes) };
 }
+
+/**
+ * Desconto da promoção em % inteiro (ex: 20), ou null se não houver
+ * promoção de verdade (promocional vazio ou não menor que o preço normal).
+ */
+export function descontoPromocao(
+  preco: string | number,
+  promocional?: string | number | null,
+): number | null {
+  const normal = Number(preco);
+  const promo = Number(promocional);
+  if (!promo || !normal || promo >= normal) return null;
+  return Math.max(1, Math.round((1 - promo / normal) * 100));
+}

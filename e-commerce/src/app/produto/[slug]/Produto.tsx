@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { useCart } from "@/context/CartContext";
 import { useLoja } from "@/context/LojaContext";
-import { parcelasSemJuros } from "@/lib/formato";
+import { descontoPromocao, parcelasSemJuros } from "@/lib/formato";
 import { api, ApiError } from "@/lib/api";
 import Image from "next/image";
 import Link from "next/link";
@@ -217,14 +217,26 @@ export default function ProdutoDetalhePage({
             </h1>
 
             <div className="mb-8">
+              {(() => {
+                const desconto = descontoPromocao(
+                  produto.VL_PRECO,
+                  produto.VL_PRECO_PROMOCIONAL,
+                );
+                if (!desconto) return null;
+                return (
+                  <p className="text-sm font-medium text-slate-400 mb-1 flex items-center gap-2">
+                    <span>
+                      de <s>{formatMoney(produto.VL_PRECO)}</s> por
+                    </span>
+                    <span className="rounded-full bg-red-600 text-white text-xs font-black px-2.5 py-0.5">
+                      -{desconto}%
+                    </span>
+                  </p>
+                );
+              })()}
               <p className="text-3xl font-black text-primary">
                 {formatMoney(produto.VL_PRECO_PROMOCIONAL ?? produto.VL_PRECO)}
               </p>
-              {produto.VL_PRECO_PROMOCIONAL && (
-                <p className="text-sm font-bold text-slate-400 line-through">
-                  {formatMoney(produto.VL_PRECO)}
-                </p>
-              )}
               {(() => {
                 const parcelas = parcelasSemJuros(
                   produto.VL_PRECO_PROMOCIONAL ?? produto.VL_PRECO,
