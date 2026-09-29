@@ -19,8 +19,10 @@ function decodeJwt(token: string) {
   }
 }
 
+const COOKIE_TOKEN = "zephira_token_admin";
+
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get("zephira_token_admin")?.value;
+  const token = request.cookies.get(COOKIE_TOKEN)?.value;
   const { pathname } = request.nextUrl;
 
   const publicRoutes = ["/login", "/esqueceu-senha", "/resete-senha"];
@@ -37,10 +39,15 @@ export function middleware(request: NextRequest) {
     const payload = decodeJwt(token);
     const isExpired = payload?.exp ? Date.now() >= payload.exp * 1000 : true;
 
-    // 2. Caso: Token expirado
+    // 2. Caso: Token expirado (ou ilegível). Apaga o cookie certo e deixa a
+    // pessoa no login. Antes apagava outro nome ("zephira-token"): o cookie
+    // vencido continuava, e o /login redirecionava pro /login sem fim
+    // ("muitos redirecionamentos" no Safari, set/2026).
     if (isExpired) {
-      const response = NextResponse.redirect(new URL("/login", request.url));
-      response.cookies.delete("zephira-token"); // Limpa o cookie "sujo"
+      const response = isPublicRoute
+        ? NextResponse.next()
+        : NextResponse.redirect(new URL("/login", request.url));
+      response.cookies.delete(COOKIE_TOKEN);
       return response;
     }
 

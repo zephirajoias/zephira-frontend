@@ -33,7 +33,9 @@ export default function LoginForm() {
           path: "/",
           secure: true,
           sameSite: "lax" as const,
-          maxAge: 60 * 60 * 24,
+          // Mesma validade do token do admin (8h, no backend). Com 24h, o
+          // cookie guardava um token já vencido por 16 horas.
+          maxAge: 60 * 60 * 8,
         };
 
         nookies.set(null, "zephira_token_admin", access_token, cookiesOptions);
