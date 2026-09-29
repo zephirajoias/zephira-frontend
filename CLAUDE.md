@@ -48,6 +48,17 @@ Também tem timeout de 60s configurado nessa instância — não é
 capricho, é pra cobrir o cold-start do Render (ver abaixo) sem deixar a
 tela presa em "Processando..." pra sempre sem feedback.
 
+## admin: sessão (`middleware.ts`)
+
+O login grava o token no cookie `zephira_token_admin` (e no
+`localStorage`). O token vale 8h (backend) e o cookie também dura 8h
+(`LoginForm.tsx`): mantenha os dois iguais. Token vencido ou ilegível: o
+middleware apaga **esse** cookie e deixa a pessoa no `/login`. Já existiu
+um laço infinito aqui (set/2026): o middleware apagava um cookie de outro
+nome, o vencido ficava e o `/login` redirecionava pro `/login`
+("muitos redirecionamentos" no Safari). Pra testar, mande um JWT com `exp`
+no passado no cookie e confira que `/login` responde 200.
+
 ## Navegação por categoria é hierárquica
 
 `/categoria/[pai]/[filho]` (ex: `/categoria/colares/aco`). O slug do
@@ -190,3 +201,5 @@ o sistema tinha quebrado por causa disso.
 - **2026-09-26** — Banner, "Navegue por Categorias" e "Combinações
   Perfeitas" da home voltaram às fotos e categorias originais, a pedido da
   loja. Visual da vitrine é decisão da loja: não trocar sem pedir.
+- **2026-09-29** — Corrigido o laço de redirecionamento do admin com a
+  sessão vencida; cookie do admin passa a durar 8h, como o token.
