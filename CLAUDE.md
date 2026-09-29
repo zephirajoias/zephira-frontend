@@ -179,11 +179,16 @@ o sistema tinha quebrado por causa disso.
   repositório `DEPLOY_ENABLED=true` e os secrets `VPS_HOST`, `VPS_USER`,
   `VPS_SSH_KEY`. `docker compose up -d --wait` só termina quando os
   healthchecks passam (loja `/`, admin `/login`).
+- **Compilar um app de cada vez** (`docker compose build loja`, depois
+  `admin`). O `docker compose build` sem nome compila os dois juntos, e em
+  set/2026 isso falhou na VPS (exit 1 no `pnpm build`) por falta de
+  memória; sozinho, o mesmo build passou.
 - nginx e HTTPS (certbot) da VPS: ver `back-end/CLAUDE.md`, "Deploy".
 - Deploy manual, na VPS:
   ```bash
   cd /opt/zephira/front-end && git pull --ff-only
-  docker compose build && docker compose up -d --wait
+  docker compose build loja && docker compose build admin
+  docker compose up -d --wait
   ```
 
 ## Histórico de mudanças relevantes
@@ -203,3 +208,5 @@ o sistema tinha quebrado por causa disso.
   loja. Visual da vitrine é decisão da loja: não trocar sem pedir.
 - **2026-09-29** — Corrigido o laço de redirecionamento do admin com a
   sessão vencida; cookie do admin passa a durar 8h, como o token.
+- **2026-09-29** — Promoção por peça: "de R$ X por R$ Y" e selo de
+  desconto na loja; campo de preço promocional no admin.

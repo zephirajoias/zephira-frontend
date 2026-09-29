@@ -50,6 +50,9 @@ jobs:
             git pull --ff-only origin main
             # --wait só termina quando os healthchecks dos dois containers
             # passam; se não passarem, o deploy falha e aparece em vermelho.
-            docker compose build
+            # Um app de cada vez: os dois builds do Next juntos já estouraram a
+            # memória da VPS (que também roda o n8n).
+            docker compose build loja
+            docker compose build admin
             docker compose up -d --wait
             docker image prune -f
