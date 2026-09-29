@@ -342,7 +342,7 @@ export function EditProductModal({
               </div>
               {promocaoValida ? (
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  <span className="inline-block rounded-full bg-red-600 text-white font-black px-2 py-0.5 mr-2">
+                  <span className="inline-block rounded-full bg-[var(--zephira-primary)] text-[#0f172a] font-black px-2 py-0.5 mr-2">
                     -{descontoPct}%
                   </span>
                   Na loja: de <s>{real(precoNormal)}</s> por{" "}

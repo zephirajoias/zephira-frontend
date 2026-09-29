@@ -410,7 +410,7 @@ export default function InventoryPage() {
                                                 <span className="text-[10px] text-slate-400 line-through">
                                                   {formatter.format(Number(variant.VL_PRECO))}
                                                 </span>
-                                                <span className="font-black text-red-600">
+                                                <span className="font-black text-[var(--zephira-primary)]">
                                                   {formatter.format(
                                                     Number(variant.VL_PRECO_PROMOCIONAL),
                                                   )}{" "}

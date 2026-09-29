@@ -44,7 +44,7 @@ export function ProdutoCard({
           priority={prioridade}
         />
         {desconto && (
-          <span className="absolute top-3 right-3 z-10 flex items-center justify-center w-12 h-12 rounded-full bg-red-600 text-white text-xs font-black shadow-md">
+          <span className="absolute top-3 right-3 z-10 flex items-center justify-center w-12 h-12 rounded-full bg-primary text-bg-dark text-xs font-black shadow-md">
             -{desconto}%
           </span>
         )}
@@ -61,7 +61,7 @@ export function ProdutoCard({
           </p>
         )}
         <p
-          className={`text-lg sm:text-xl font-black tracking-tight ${desconto ? "text-red-600" : "text-text-main"}`}
+          className={`text-lg sm:text-xl font-black tracking-tight ${desconto ? "text-primary" : "text-text-main"}`}
         >
           {formatarPreco(precoFinal)}
         </p>

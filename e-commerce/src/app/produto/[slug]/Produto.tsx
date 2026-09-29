@@ -228,7 +228,7 @@ export default function ProdutoDetalhePage({
                     <span>
                       de <s>{formatMoney(produto.VL_PRECO)}</s> por
                     </span>
-                    <span className="rounded-full bg-red-600 text-white text-xs font-black px-2.5 py-0.5">
+                    <span className="rounded-full bg-primary text-bg-dark text-xs font-black px-2.5 py-0.5">
                       -{desconto}%
                     </span>
                   </p>
