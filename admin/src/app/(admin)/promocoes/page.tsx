@@ -3,6 +3,7 @@
 import { StatCard } from "@/components/dashboard/StatCard";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 // Modais
@@ -140,13 +141,22 @@ export default function PromotionsPage() {
             Crie campanhas de incentivo e impulsione suas vendas.
           </p>
         </div>
-        <button
-          onClick={() => setModals({ ...modals, new: true })}
-          className="flex items-center justify-center gap-2 h-12 px-6 rounded-2xl bg-[#11d4c4] text-[#0a1615] font-black shadow-lg shadow-[#11d4c4]/20 hover:scale-[1.02] transition-all active:scale-95"
-        >
-          <span className="material-symbols-outlined">add_circle</span>
-          Criar Promoção
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/promocoes/descontao"
+            className="flex items-center justify-center gap-2 h-12 px-6 rounded-2xl border border-[#11d4c4]/30 text-[#0a8a7e] dark:text-[#11d4c4] font-black hover:bg-[#11d4c4]/10 transition-all active:scale-95"
+          >
+            <span className="material-symbols-outlined">percent</span>
+            Descontão
+          </Link>
+          <button
+            onClick={() => setModals({ ...modals, new: true })}
+            className="flex items-center justify-center gap-2 h-12 px-6 rounded-2xl bg-[#11d4c4] text-[#0a1615] font-black shadow-lg shadow-[#11d4c4]/20 hover:scale-[1.02] transition-all active:scale-95"
+          >
+            <span className="material-symbols-outlined">add_circle</span>
+            Criar Promoção
+          </button>
+        </div>
       </header>
 
       {/* KPI Cards */}

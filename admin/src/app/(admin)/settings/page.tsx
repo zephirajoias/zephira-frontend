@@ -22,7 +22,7 @@ export default function SettingsPage() {
         {
           title: "Promoções e Ofertas",
           description:
-            "Configure cupons de desconto, vendas sazonais e ofertas de combos.",
+            "Cupons de desconto e o Descontão (desconto em várias peças de uma vez).",
           icon: "percent",
           color: "blue",
           href: "/promocoes",
