@@ -19,8 +19,9 @@ import {
   X,
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import { AROS_ANEL, ehCategoriaAnel } from "@/lib/tamanhos";
 import { SimulacaoRecebimento } from "./SimulacaoRecebimento";
 
 interface EditProductModalProps {
@@ -75,6 +76,15 @@ export function EditProductModal({
       setImagens(product.IMAGENS ?? []);
     }
   }, [product]);
+
+  const mostrarArosAnel = useMemo(
+    () =>
+      ehCategoriaAnel(
+        categorias.find((c) => String(c.CD_CATEGORIA) === categoriaId)
+          ?.NM_CATEGORIA_DISPLAY,
+      ),
+    [categoriaId, categorias],
+  );
 
   const precoNormal = Number(preco) || 0;
   const precoPromo = Number(promocao) || 0;
@@ -421,8 +431,26 @@ export function EditProductModal({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-gray-400">
-                  <Package size={12} /> Tamanho
+                  <Package size={12} /> {mostrarArosAnel ? "Aro / Tamanho" : "Tamanho"}
                 </label>
+                {mostrarArosAnel && (
+                  <div className="flex flex-wrap gap-2 pb-1">
+                    {AROS_ANEL.map((aro) => (
+                      <button
+                        key={aro}
+                        type="button"
+                        onClick={() => setTamanho(aro)}
+                        className={`h-8 min-w-8 px-2 rounded-lg text-sm font-bold transition-colors ${
+                          tamanho === aro
+                            ? "bg-[var(--zephira-primary)] text-white"
+                            : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
+                        }`}
+                      >
+                        {aro}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <input
                   type="text"
                   value={tamanho}
