@@ -59,6 +59,15 @@ nome, o vencido ficava e o `/login` redirecionava pro `/login`
 ("muitos redirecionamentos" no Safari). Pra testar, mande um JWT com `exp`
 no passado no cookie e confira que `/login` responde 200.
 
+## Variação com foto própria (cor) na página do produto
+
+`Produto.tsx` monta a galeria em duas camadas: `fotosDaVariacao` (fotos
+com `CD_VARIACAO` igual à variação escolhida) e `fotosGerais` (as sem
+`CD_VARIACAO`). Mostra as da variação se existirem, senão as gerais. Ao
+trocar de variação, `imagemAtiva` volta pra 0 (senão o índice podia
+sobrar de uma galeria maior pra uma menor). O carrinho usa a foto que
+estava na tela (`imagens[0]`), não sempre a primeira foto geral.
+
 ## Navegação por categoria é hierárquica
 
 `/categoria/[pai]/[filho]` (ex: `/categoria/colares/aco`). O slug do
@@ -210,3 +219,5 @@ o sistema tinha quebrado por causa disso.
   sessão vencida; cookie do admin passa a durar 8h, como o token.
 - **2026-09-29** — Promoção por peça: "de R$ X por R$ Y" e selo de
   desconto na loja; campo de preço promocional no admin.
+- **2026-10-16** — Variação com foto própria (ex: cada cor do brinco):
+  a galeria do produto troca pra essas fotos quando escolhida.
