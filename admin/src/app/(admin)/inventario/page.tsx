@@ -7,6 +7,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 
 // Componentes de Modal
 import { AddVariationModal } from "@/components/dashboard/inventario/addVariationModal";
+import { VariationPhotosModal } from "@/components/dashboard/inventario/variationPhotosModal";
 import { DeleteProductModal } from "@/components/dashboard/inventario/deleteProductModal";
 import { DeleteVariacaoModal } from "@/components/dashboard/inventario/deleteVariacaoModal";
 import { EditProductModal } from "@/components/dashboard/inventario/editProductModal";
@@ -84,6 +85,7 @@ export default function InventoryPage() {
     edit: null as any,
     deleteProduct: null as any,
     deleteVariation: null as any,
+    variationPhotos: null as any,
   });
 
   const [variationParent, setVariationParent] = useState<any>(null);
@@ -182,6 +184,12 @@ export default function InventoryPage() {
         product={variationParent}
         onClose={() => setModals({ ...modals, variation: false })}
         onSuccess={fetchInventory}
+      />
+      <VariationPhotosModal
+        isOpen={!!modals.variationPhotos}
+        variacao={modals.variationPhotos}
+        nomeProduto={modals.variationPhotos?.NM_PRODUTO}
+        onClose={() => setModals({ ...modals, variationPhotos: null })}
       />
       <EditProductModal
         isOpen={!!modals.edit}
@@ -456,6 +464,20 @@ export default function InventoryPage() {
                                               >
                                                 <span className="material-symbols-outlined text-lg">
                                                   edit
+                                                </span>
+                                              </button>
+                                              <button
+                                                onClick={() =>
+                                                  setModals({
+                                                    ...modals,
+                                                    variationPhotos: variant,
+                                                  })
+                                                }
+                                                className="p-2 hover:bg-[#11d4c4]/10 text-gray-400 hover:text-[#11d4c4] rounded-lg transition-all"
+                                                title="Fotos dessa variação"
+                                              >
+                                                <span className="material-symbols-outlined text-lg">
+                                                  photo_camera
                                                 </span>
                                               </button>
                                               <button

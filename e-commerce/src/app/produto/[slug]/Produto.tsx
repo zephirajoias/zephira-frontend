@@ -22,6 +22,9 @@ interface Imagem {
   CD_IMAGEM: number;
   DS_URL: string;
   SN_PRINCIPAL: string;
+  // Presente = foto só dessa variação (ex: a cor escolhida tem foto
+  // própria); ausente/null = foto geral do produto.
+  CD_VARIACAO?: number | null;
 }
 
 export interface ProdutoDetalhe {
@@ -58,6 +61,14 @@ export default function ProdutoDetalhePage({
     () => primeiraDisponivel(inicial),
   );
   const [adicionado, setAdicionado] = useState(false);
+
+  // Variação com foto própria (ex: cor) troca a galeria pra essas fotos;
+  // sem foto própria, mantém as fotos gerais do produto. Volta pra primeira
+  // foto sempre que o conjunto muda, senão o índice podia sobrar de uma
+  // galeria maior pra uma menor.
+  useEffect(() => {
+    setImagemAtiva(0);
+  }, [variacaoSelecionada]);
 
   useEffect(() => {
     if (inicial) return;
@@ -101,8 +112,7 @@ export default function ProdutoDetalhePage({
     );
     if (!variacao) return;
 
-    const imagem =
-      produto.IMAGENS_PRODUTO?.[0]?.DS_URL ?? "/placeholder.png";
+    const imagem = imagens[0]?.DS_URL ?? "/placeholder.png";
     const preco = Number(
       produto.VL_PRECO_PROMOCIONAL ?? produto.VL_PRECO,
     );
@@ -151,9 +161,18 @@ export default function ProdutoDetalhePage({
     );
   }
 
-  const imagens = produto.IMAGENS_PRODUTO.length
-    ? produto.IMAGENS_PRODUTO
-    : [{ CD_IMAGEM: 0, DS_URL: "/placeholder.png", SN_PRINCIPAL: "S" }];
+  // Prioridade: fotos da variação escolhida > fotos gerais do produto >
+  // placeholder. (A chamada acima, handleAddToCart, está antes desse cálculo
+  // no arquivo por causa da ordem dos hooks — ver "imagens" ali embaixo.)
+  const fotosDaVariacao = produto.IMAGENS_PRODUTO.filter(
+    (img) => img.CD_VARIACAO === variacaoSelecionada,
+  );
+  const fotosGerais = produto.IMAGENS_PRODUTO.filter((img) => !img.CD_VARIACAO);
+  const imagens = fotosDaVariacao.length
+    ? fotosDaVariacao
+    : fotosGerais.length
+      ? fotosGerais
+      : [{ CD_IMAGEM: 0, DS_URL: "/placeholder.png", SN_PRINCIPAL: "S" }];
   const variacaoAtual = produto.VARIACOES_PRODUTO.find(
     (v) => v.CD_VARIACAO === variacaoSelecionada,
   );
