@@ -3,7 +3,7 @@
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AROS_ANEL, ehCategoriaAnel } from "@/lib/tamanhos";
+import { sugestaoDeTamanho } from "@/lib/tamanhos";
 import { toast } from "react-toastify";
 import { SimulacaoRecebimento } from "./SimulacaoRecebimento";
 
@@ -68,9 +68,9 @@ export function NewProductModal({
   const [variacoes, setVariacoes] = useState<VariacaoItem[]>([]);
 
   // --- COMPUTED ---
-  const mostrarArosAnel = useMemo(
+  const sugestaoTamanho = useMemo(
     () =>
-      ehCategoriaAnel(
+      sugestaoDeTamanho(
         todosCategorias.find((c) => String(c.CD_CATEGORIA) === categoriaId)
           ?.NM_CATEGORIA_DISPLAY,
       ),
@@ -383,32 +383,32 @@ export function NewProductModal({
                 </div>
 
                 <div className="space-y-4">
-                  {mostrarArosAnel && (
+                  {sugestaoTamanho && (
                     <div>
                       <label className="block text-xs font-bold text-gray-500 mb-2">
-                        AROS MAIS COMUNS — toque pra escolher
+                        {sugestaoTamanho.rotulo.toUpperCase()}S MAIS COMUNS — toque pra escolher
                       </label>
                       <div className="flex flex-wrap gap-2">
-                        {AROS_ANEL.map((aro) => {
-                          const jaAdicionado = variacoes.some((v) => v.nome === aro);
+                        {sugestaoTamanho.valores.map((valor) => {
+                          const jaAdicionado = variacoes.some((v) => v.nome === valor);
                           return (
                             <button
-                              key={aro}
+                              key={valor}
                               type="button"
                               disabled={jaAdicionado}
                               onClick={() => {
-                                setTamanhoInput(aro);
+                                setTamanhoInput(valor);
                                 document.getElementById("qtd-input")?.focus();
                               }}
                               className={`h-9 min-w-9 px-2 rounded-lg text-sm font-bold transition-colors ${
                                 jaAdicionado
                                   ? "bg-[var(--zephira-primary)]/15 text-[var(--zephira-primary)] cursor-default"
-                                  : tamanhoInput === aro
+                                  : tamanhoInput === valor
                                     ? "bg-[var(--zephira-primary)] text-white"
                                     : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
                               }`}
                             >
-                              {jaAdicionado ? "✓" : aro}
+                              {jaAdicionado ? "✓" : valor}
                             </button>
                           );
                         })}
@@ -419,7 +419,7 @@ export function NewProductModal({
                   <div className="flex gap-3 items-end">
                     <div className="flex-[2]">
                       <label className="block text-xs font-bold text-gray-500 mb-1">
-                        {mostrarArosAnel ? "ARO / TAMANHO" : "VARIAÇÃO / TAMANHO"}
+                        {sugestaoTamanho ? `${sugestaoTamanho.rotulo.toUpperCase()} / TAMANHO` : "VARIAÇÃO / TAMANHO"}
                       </label>
                       <input
                         id="tamanho-input"
@@ -427,7 +427,7 @@ export function NewProductModal({
                         value={tamanhoInput}
                         onChange={(e) => setTamanhoInput(e.target.value)}
                         className="w-full rounded-lg bg-gray-50 dark:bg-black/20 border-gray-200 dark:border-white/10 px-4 py-2.5 outline-none dark:text-white"
-                        placeholder={mostrarArosAnel ? "Ex: 18" : "Ex: P, M, G"}
+                        placeholder={sugestaoTamanho ? `Ex: ${sugestaoTamanho.valores[3]}` : "Ex: P, M, G"}
                       />
                     </div>
                     <div className="flex-1">

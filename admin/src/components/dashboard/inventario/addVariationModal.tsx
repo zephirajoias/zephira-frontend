@@ -2,7 +2,7 @@
 
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
-import { AROS_ANEL, ehCategoriaAnel } from "@/lib/tamanhos";
+import { sugestaoDeTamanho } from "@/lib/tamanhos";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
@@ -33,8 +33,8 @@ export function AddVariationModal({
   const [estoque, setEstoque] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const mostrarArosAnel = useMemo(
-    () => ehCategoriaAnel(product?.NM_CATEGORIA ?? product?.nm_categoria_principal),
+  const sugestaoTamanho = useMemo(
+    () => sugestaoDeTamanho(product?.NM_CATEGORIA ?? product?.nm_categoria_principal),
     [product],
   );
 
@@ -136,22 +136,22 @@ export function AddVariationModal({
             {/* Tamanho */}
             <div className="col-span-2 group">
               <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wider">
-                {mostrarArosAnel ? "Aro / Tamanho *" : "Tamanho / Variação *"}
+                {sugestaoTamanho ? `${sugestaoTamanho.rotulo} / Tamanho *` : "Tamanho / Variação *"}
               </label>
-              {mostrarArosAnel && (
+              {sugestaoTamanho && (
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {AROS_ANEL.map((aro) => (
+                  {sugestaoTamanho.valores.map((valor) => (
                     <button
-                      key={aro}
+                      key={valor}
                       type="button"
-                      onClick={() => setValorVariacao(aro)}
+                      onClick={() => setValorVariacao(valor)}
                       className={`h-8 min-w-8 px-2 rounded-lg text-sm font-bold transition-colors ${
-                        valorVariacao === aro
+                        valorVariacao === valor
                           ? "bg-[var(--zephira-primary)] text-white"
                           : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
                       }`}
                     >
-                      {aro}
+                      {valor}
                     </button>
                   ))}
                 </div>
@@ -161,7 +161,9 @@ export function AddVariationModal({
                   value={valorVariacao}
                   onChange={(e) => setValorVariacao(e.target.value)}
                   placeholder={
-                    mostrarArosAnel ? "Ex: 18" : "Ex: 18, 20, P, M, 45cm"
+                    sugestaoTamanho
+                      ? `Ex: ${sugestaoTamanho.valores[3]}`
+                      : "Ex: 18, 20, P, M, 45cm"
                   }
                   className="w-full h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black/20 pl-10 pr-4 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[var(--zephira-primary)]/20 transition-all font-bold"
                   autoFocus

@@ -21,7 +21,7 @@ import {
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "react-toastify";
-import { AROS_ANEL, ehCategoriaAnel } from "@/lib/tamanhos";
+import { sugestaoDeTamanho } from "@/lib/tamanhos";
 import { SimulacaoRecebimento } from "./SimulacaoRecebimento";
 
 interface EditProductModalProps {
@@ -77,9 +77,9 @@ export function EditProductModal({
     }
   }, [product]);
 
-  const mostrarArosAnel = useMemo(
+  const sugestaoTamanho = useMemo(
     () =>
-      ehCategoriaAnel(
+      sugestaoDeTamanho(
         categorias.find((c) => String(c.CD_CATEGORIA) === categoriaId)
           ?.NM_CATEGORIA_DISPLAY,
       ),
@@ -431,22 +431,22 @@ export function EditProductModal({
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-gray-400">
-                  <Package size={12} /> {mostrarArosAnel ? "Aro / Tamanho" : "Tamanho"}
+                  <Package size={12} /> {sugestaoTamanho ? `${sugestaoTamanho.rotulo} / Tamanho` : "Tamanho"}
                 </label>
-                {mostrarArosAnel && (
+                {sugestaoTamanho && (
                   <div className="flex flex-wrap gap-2 pb-1">
-                    {AROS_ANEL.map((aro) => (
+                    {sugestaoTamanho.valores.map((valor) => (
                       <button
-                        key={aro}
+                        key={valor}
                         type="button"
-                        onClick={() => setTamanho(aro)}
+                        onClick={() => setTamanho(valor)}
                         className={`h-8 min-w-8 px-2 rounded-lg text-sm font-bold transition-colors ${
-                          tamanho === aro
+                          tamanho === valor
                             ? "bg-[var(--zephira-primary)] text-white"
                             : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
                         }`}
                       >
-                        {aro}
+                        {valor}
                       </button>
                     ))}
                   </div>
