@@ -457,7 +457,18 @@ export default function InventoryPage() {
                                                 onClick={() =>
                                                   setModals({
                                                     ...modals,
-                                                    edit: variant,
+                                                    edit: {
+                                                      ...variant,
+                                                      // Pros botões de tamanho saberem quais já
+                                                      // existem nas outras variações desse produto.
+                                                      _outrosTamanhos: product.variations
+                                                        .filter(
+                                                          (v) =>
+                                                            v.CD_VARIACAO !==
+                                                            variant.CD_VARIACAO,
+                                                        )
+                                                        .map((v) => v.DS_TAMANHO),
+                                                    },
                                                   })
                                                 }
                                                 className="p-2 hover:bg-[#11d4c4]/10 text-[#11d4c4] rounded-lg transition-all"

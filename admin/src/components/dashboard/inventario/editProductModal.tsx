@@ -44,6 +44,9 @@ export function EditProductModal({
   const [sku, setSku] = useState("");
   const [tamanho, setTamanho] = useState<string>("");
   const [estoque, setEstoque] = useState<string>("");
+  // Tamanhos marcados pra criar como variação nova (além de editar a atual).
+  const [novosTamanhos, setNovosTamanhos] = useState<string[]>([]);
+  const [estoqueNovos, setEstoqueNovos] = useState<string>("");
   const [categoriaId, setCategoriaId] = useState<string>("");
   const [categorias, setCategorias] = useState<any[]>([]);
   const [imagens, setImagens] = useState<any[]>([]);
@@ -72,6 +75,8 @@ export function EditProductModal({
       setSku(product.CD_SKU ?? "");
       setTamanho(product.DS_TAMANHO ? String(product.DS_TAMANHO) : "");
       setEstoque(product.QT_ESTOQUE ? String(product.QT_ESTOQUE) : "");
+      setNovosTamanhos([]);
+      setEstoqueNovos("");
       setCategoriaId(product.CD_CATEGORIA ? String(product.CD_CATEGORIA) : "");
       setImagens(product.IMAGENS ?? []);
     }
@@ -95,10 +100,25 @@ export function EditProductModal({
   const real = (v: number) =>
     v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+  // Tamanhos que outras variações desse produto já usam — não dá pra
+  // marcar esses pra criar de novo (duplicaria).
+  const outrosTamanhos: string[] = product?._outrosTamanhos ?? [];
+
+  const toggleNovoTamanho = (valor: string) => {
+    if (valor === tamanho || outrosTamanhos.includes(valor)) return;
+    setNovosTamanhos((atual) =>
+      atual.includes(valor) ? atual.filter((v) => v !== valor) : [...atual, valor],
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (precoPromo > 0 && !promocaoValida) {
       toast.error("O preço promocional precisa ser menor que o preço normal.");
+      return;
+    }
+    if (novosTamanhos.length > 0 && !estoqueNovos) {
+      toast.error("Preencha o estoque inicial dos tamanhos novos marcados.");
       return;
     }
     setIsLoading(true);
@@ -121,7 +141,31 @@ export function EditProductModal({
         DS_TAMANHO: tamanho,
       });
 
-      toast.success("Produto atualizado com sucesso!");
+      // 3. Cria, uma por uma, as variações novas marcadas nos botões
+      const falhas: string[] = [];
+      for (const novoTamanho of novosTamanhos) {
+        try {
+          await api.post(`/admin/produto/${product.CD_PRODUTO}/variacao`, {
+            DS_TAMANHO: novoTamanho,
+            DS_SLUG: `${nome}-${novoTamanho}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+            QT_ESTOQUE: Number(estoqueNovos),
+            NM_TIPO: "Tamanho",
+          });
+        } catch (err) {
+          console.error(err);
+          falhas.push(novoTamanho);
+        }
+      }
+
+      if (falhas.length > 0) {
+        toast.warn(`Produto salvo, mas não deu pra criar: ${falhas.join(", ")}.`);
+      } else if (novosTamanhos.length > 0) {
+        toast.success(
+          `Produto atualizado e ${novosTamanhos.length} tamanho(s) novo(s) criado(s)!`,
+        );
+      } else {
+        toast.success("Produto atualizado com sucesso!");
+      }
       onSuccess();
       onClose();
     } catch (error: any) {
@@ -434,22 +478,50 @@ export function EditProductModal({
                   <Package size={12} /> {sugestaoTamanho ? `${sugestaoTamanho.rotulo} / Tamanho` : "Tamanho"}
                 </label>
                 {sugestaoTamanho && (
-                  <div className="flex flex-wrap gap-2 pb-1">
-                    {sugestaoTamanho.valores.map((valor) => (
-                      <button
-                        key={valor}
-                        type="button"
-                        onClick={() => setTamanho(valor)}
-                        className={`h-8 min-w-8 px-2 rounded-lg text-sm font-bold transition-colors ${
-                          tamanho === valor
-                            ? "bg-[var(--zephira-primary)] text-white"
-                            : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
-                        }`}
-                      >
-                        {valor}
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <p className="text-[11px] text-gray-400 mb-1">
+                      <span className="font-bold text-[var(--zephira-primary)]">
+                        {tamanho || "destacado"}
+                      </span>{" "}
+                      é o tamanho desta variação (edite no campo abaixo pra
+                      trocar). Toque em outros tamanhos pra criar como
+                      variação nova junto ao salvar.
+                    </p>
+                    <div className="flex flex-wrap gap-2 pb-1">
+                      {sugestaoTamanho.valores.map((valor) => {
+                        const ehAtual = tamanho === valor;
+                        const jaExiste = outrosTamanhos.includes(valor);
+                        const marcadoPraCriar = novosTamanhos.includes(valor);
+                        return (
+                          <button
+                            key={valor}
+                            type="button"
+                            disabled={ehAtual || jaExiste}
+                            title={
+                              ehAtual
+                                ? "Tamanho desta variação"
+                                : jaExiste
+                                  ? "Já existe em outra variação"
+                                  : undefined
+                            }
+                            onClick={() => toggleNovoTamanho(valor)}
+                            className={`h-8 min-w-8 px-2 rounded-lg text-sm font-bold transition-colors ${
+                              ehAtual
+                                ? "bg-[var(--zephira-primary)] text-white cursor-default"
+                                : jaExiste
+                                  ? "bg-gray-100 dark:bg-white/5 text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                  : marcadoPraCriar
+                                    ? "bg-[var(--zephira-primary)]/15 text-[var(--zephira-primary)] border-2 border-[var(--zephira-primary)]"
+                                    : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
+                            }`}
+                          >
+                            {jaExiste ? "✓ " : marcadoPraCriar ? "+ " : ""}
+                            {valor}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
                 <input
                   type="text"
@@ -470,6 +542,25 @@ export function EditProductModal({
                   className="w-full h-12 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black/20 px-4 text-sm font-medium focus:ring-2 focus:ring-[var(--zephira-primary)] outline-none text-gray-900 dark:text-white"
                 />
               </div>
+
+              {novosTamanhos.length > 0 && (
+                <div className="col-span-2 space-y-2 rounded-xl border border-[var(--zephira-primary)]/30 bg-[var(--zephira-primary)]/5 p-4">
+                  <label className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                    <Package size={12} /> Estoque inicial dos tamanhos novos
+                    ({novosTamanhos.join(", ")})
+                  </label>
+                  <input
+                    type="number"
+                    value={estoqueNovos}
+                    onChange={(e) => setEstoqueNovos(e.target.value)}
+                    placeholder="0"
+                    className="w-full h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black/20 px-4 text-sm font-bold focus:ring-2 focus:ring-[var(--zephira-primary)] outline-none text-gray-900 dark:text-white"
+                  />
+                  <p className="text-[11px] text-gray-400">
+                    Vale pra cada um dos {novosTamanhos.length} tamanhos marcados.
+                  </p>
+                </div>
+              )}
             </div>
           </form>
         </div>
