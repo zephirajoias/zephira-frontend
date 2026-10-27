@@ -28,8 +28,11 @@ export function AddVariationModal({
   product, // <--- Este produto vem pronto da tabela
   onSuccess,
 }: AddVariationModalProps) {
-  // Form States
-  const [valorVariacao, setValorVariacao] = useState("");
+  // Tamanhos marcados nos botões (toque em vários pra adicionar todos de
+  // uma vez, ex: 17cm e 18cm da mesma pulseira) + um campo livre pra valor
+  // fora da lista (aceita mais de um separado por vírgula).
+  const [selecionados, setSelecionados] = useState<string[]>([]);
+  const [valorExtra, setValorExtra] = useState("");
   const [estoque, setEstoque] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -41,12 +44,27 @@ export function AddVariationModal({
   // Quando o modal abre com um produto, preenche os dados
   useEffect(() => {
     if (isOpen && product) {
-      // Tenta gerar um SKU sugerido se o pai tiver SKU, senão deixa em branco
-      const baseSku = product.CD_SKU || product.cd_sku || "";
-      setValorVariacao("");
+      setSelecionados([]);
+      setValorExtra("");
       setEstoque("");
     }
   }, [isOpen, product]);
+
+  const toggleTamanho = (valor: string) => {
+    setSelecionados((atual) =>
+      atual.includes(valor) ? atual.filter((v) => v !== valor) : [...atual, valor],
+    );
+  };
+
+  // Junta os botões marcados com o que foi digitado no campo livre (aceita
+  // vírgula pra mais de um: "40cm, 45cm"), sem repetir.
+  const tamanhos = useMemo(() => {
+    const doTexto = valorExtra
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    return Array.from(new Set([...selecionados, ...doTexto]));
+  }, [selecionados, valorExtra]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,26 +74,46 @@ export function AddVariationModal({
       toast.error("Erro: Produto inválido.");
       return;
     }
+    if (tamanhos.length === 0) return;
 
     setIsLoading(true);
-    try {
-      await api.post(`/admin/produto/${productId}/variacao`, {
-        DS_TAMANHO: valorVariacao,
-        DS_SLUG: `${product.NM_PRODUTO}-${valorVariacao}`
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-"),
-        QT_ESTOQUE: Number(estoque),
-        NM_TIPO: "Tamanho",
-      });
+    const falhas: string[] = [];
+    // Uma chamada por tamanho (o backend cria uma variação de cada vez);
+    // segue tentando os outros mesmo se um falhar, pra não perder o resto
+    // do lote por causa de um SKU repetido, por exemplo.
+    for (const tamanho of tamanhos) {
+      try {
+        await api.post(`/admin/produto/${productId}/variacao`, {
+          DS_TAMANHO: tamanho,
+          DS_SLUG: `${product.NM_PRODUTO}-${tamanho}`
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-"),
+          QT_ESTOQUE: Number(estoque),
+          NM_TIPO: "Tamanho",
+        });
+      } catch (error) {
+        console.error(error);
+        falhas.push(tamanho);
+      }
+    }
+    setIsLoading(false);
 
-      toast.success("Variação adicionada!");
+    const sucessos = tamanhos.length - falhas.length;
+    if (falhas.length === 0) {
+      toast.success(
+        sucessos === 1 ? "Variação adicionada!" : `${sucessos} variações adicionadas!`,
+      );
+    } else if (sucessos === 0) {
+      toast.error("Não consegui adicionar. Verifique se esse tamanho já existe.");
+    } else {
+      toast.warn(
+        `${sucessos} adicionada(s). Não deu pra adicionar: ${falhas.join(", ")} (já deve existir).`,
+      );
+    }
+
+    if (sucessos > 0) {
       onSuccess();
       onClose();
-    } catch (error) {
-      console.error(error);
-      toast.error("Erro ao adicionar variação");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -139,30 +177,35 @@ export function AddVariationModal({
                 {sugestaoTamanho ? `${sugestaoTamanho.rotulo} / Tamanho *` : "Tamanho / Variação *"}
               </label>
               {sugestaoTamanho && (
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {sugestaoTamanho.valores.map((valor) => (
-                    <button
-                      key={valor}
-                      type="button"
-                      onClick={() => setValorVariacao(valor)}
-                      className={`h-8 min-w-8 px-2 rounded-lg text-sm font-bold transition-colors ${
-                        valorVariacao === valor
-                          ? "bg-[var(--zephira-primary)] text-white"
-                          : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
-                      }`}
-                    >
-                      {valor}
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <p className="text-[11px] text-gray-400 mb-2">
+                    Toque em quantos precisar — todos entram de uma vez.
+                  </p>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {sugestaoTamanho.valores.map((valor) => (
+                      <button
+                        key={valor}
+                        type="button"
+                        onClick={() => toggleTamanho(valor)}
+                        className={`h-8 min-w-8 px-2 rounded-lg text-sm font-bold transition-colors ${
+                          selecionados.includes(valor)
+                            ? "bg-[var(--zephira-primary)] text-white"
+                            : "bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10"
+                        }`}
+                      >
+                        {valor}
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
               <div className="relative">
                 <input
-                  value={valorVariacao}
-                  onChange={(e) => setValorVariacao(e.target.value)}
+                  value={valorExtra}
+                  onChange={(e) => setValorExtra(e.target.value)}
                   placeholder={
                     sugestaoTamanho
-                      ? `Ex: ${sugestaoTamanho.valores[3]}`
+                      ? "Outro valor? Separe por vírgula"
                       : "Ex: 18, 20, P, M, 45cm"
                   }
                   className="w-full h-11 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black/20 pl-10 pr-4 text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-[var(--zephira-primary)]/20 transition-all font-bold"
@@ -191,6 +234,11 @@ export function AddVariationModal({
                   inventory_2
                 </span>
               </div>
+              {tamanhos.length > 1 && (
+                <p className="text-[11px] text-gray-400 mt-1.5">
+                  Vale pra cada um dos {tamanhos.length} tamanhos marcados.
+                </p>
+              )}
             </div>
           </div>
 
@@ -205,7 +253,7 @@ export function AddVariationModal({
             </button>
             <button
               type="submit"
-              disabled={isLoading || !valorVariacao || !estoque}
+              disabled={isLoading || tamanhos.length === 0 || !estoque}
               className="px-6 py-2.5 rounded-xl bg-[var(--zephira-primary)] hover:bg-[var(--zephira-primary)]/90 text-[#0f1715] font-bold text-sm shadow-lg flex items-center gap-2 disabled:opacity-50"
             >
               {isLoading ? (
@@ -215,7 +263,7 @@ export function AddVariationModal({
                   <span className="material-symbols-outlined text-[18px]">
                     add_circle
                   </span>{" "}
-                  Adicionar
+                  {tamanhos.length > 1 ? `Adicionar ${tamanhos.length}` : "Adicionar"}
                 </>
               )}
             </button>
