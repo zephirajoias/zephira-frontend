@@ -221,3 +221,5 @@ o sistema tinha quebrado por causa disso.
   desconto na loja; campo de preço promocional no admin.
 - **2026-10-16** — Variação com foto própria (ex: cada cor do brinco):
   a galeria do produto troca pra essas fotos quando escolhida.
+- **2026-10-27** — "Adicionar Variação" deixa marcar vários tamanhos de
+  uma vez (antes fechava depois de adicionar um só).
