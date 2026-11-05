@@ -35,6 +35,11 @@ interface ConfigData {
   NR_CNPJ: string;
   DS_ENDERECO_LOJA: string;
   DS_INSTAGRAM: string;
+  // Imagens da home e texto do rodapé (antes fixos no código da loja)
+  DS_URL_BANNER_HOME: string;
+  DS_URL_FOTO_COMBINACAO_1: string;
+  DS_URL_FOTO_COMBINACAO_2: string;
+  DS_TEXTO_RODAPE: string;
 }
 
 const CONFIG_VAZIA: ConfigData = {
@@ -62,6 +67,10 @@ const CONFIG_VAZIA: ConfigData = {
   NR_CNPJ: "",
   DS_ENDERECO_LOJA: "",
   DS_INSTAGRAM: "",
+  DS_URL_BANNER_HOME: "",
+  DS_URL_FOTO_COMBINACAO_1: "",
+  DS_URL_FOTO_COMBINACAO_2: "",
+  DS_TEXTO_RODAPE: "",
 };
 
 export default function SettingsGeralPage() {
@@ -73,8 +82,14 @@ export default function SettingsGeralPage() {
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
+  const bannerHomeInputRef = useRef<HTMLInputElement>(null);
+  const combinacao1InputRef = useRef<HTMLInputElement>(null);
+  const combinacao2InputRef = useRef<HTMLInputElement>(null);
   const [enviandoLogo, setEnviandoLogo] = useState(false);
   const [enviandoFavicon, setEnviandoFavicon] = useState(false);
+  const [enviandoBannerHome, setEnviandoBannerHome] = useState(false);
+  const [enviandoCombinacao1, setEnviandoCombinacao1] = useState(false);
+  const [enviandoCombinacao2, setEnviandoCombinacao2] = useState(false);
 
   // Busca as configurações
   const fetchConfig = async () => {
@@ -112,6 +127,10 @@ export default function SettingsGeralPage() {
         NR_CNPJ: config?.NR_CNPJ || "",
         DS_ENDERECO_LOJA: config?.DS_ENDERECO_LOJA || "",
         DS_INSTAGRAM: config?.DS_INSTAGRAM || "",
+        DS_URL_BANNER_HOME: config?.DS_URL_BANNER_HOME || "",
+        DS_URL_FOTO_COMBINACAO_1: config?.DS_URL_FOTO_COMBINACAO_1 || "",
+        DS_URL_FOTO_COMBINACAO_2: config?.DS_URL_FOTO_COMBINACAO_2 || "",
+        DS_TEXTO_RODAPE: config?.DS_TEXTO_RODAPE || "",
       };
 
       setFormData(normalized);
@@ -186,6 +205,60 @@ export default function SettingsGeralPage() {
       toast.error(
         error?.response?.data?.message ||
           `Erro ao enviar o ${tipo === "logo" ? "logo" : "favicon"}.`,
+      );
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  const IMAGEM_HOME = {
+    banner_home: {
+      rota: "banner-home",
+      campo: "DS_URL_BANNER_HOME",
+      setEnviando: setEnviandoBannerHome,
+      sucesso: "Banner da home atualizado!",
+    },
+    combinacao_1: {
+      rota: "combinacao-1",
+      campo: "DS_URL_FOTO_COMBINACAO_1",
+      setEnviando: setEnviandoCombinacao1,
+      sucesso: "Foto atualizada!",
+    },
+    combinacao_2: {
+      rota: "combinacao-2",
+      campo: "DS_URL_FOTO_COMBINACAO_2",
+      setEnviando: setEnviandoCombinacao2,
+      sucesso: "Foto atualizada!",
+    },
+  } as const;
+
+  const handleUploadImagemHome = async (
+    tipo: keyof typeof IMAGEM_HOME,
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const { rota, campo, setEnviando, sucesso } = IMAGEM_HOME[tipo];
+
+    setEnviando(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+
+      const { data } = await api.post<{ url: string }>(
+        `/admin/configuracoes/${rota}`,
+        fd,
+        { headers: { "Content-Type": undefined } },
+      );
+
+      setFormData((prev) => ({ ...prev, [campo]: data.url }));
+      setInitialData((prev) => (prev ? { ...prev, [campo]: data.url } : prev));
+      toast.success(sucesso);
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message || "Erro ao enviar a imagem.",
       );
     } finally {
       setEnviando(false);
@@ -684,6 +757,28 @@ export default function SettingsGeralPage() {
               </div>
             </div>
           </section>
+
+          {/* Sessão: Texto do rodapé */}
+          <section className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2">
+              <h3 className="font-black text-lg">Texto do Rodapé</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Aparece embaixo da logo, no rodapé da loja. Em branco, a loja
+                mostra o texto padrão.
+              </p>
+            </div>
+            <div className="p-8">
+              <textarea
+                className="w-full h-24 px-4 py-3 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none resize-none font-medium"
+                value={formData.DS_TEXTO_RODAPE}
+                maxLength={300}
+                onChange={(e) =>
+                  setFormData({ ...formData, DS_TEXTO_RODAPE: e.target.value })
+                }
+                placeholder="A beleza atemporal da prata 925 em joias feitas para realçar o seu brilho único."
+              />
+            </div>
+          </section>
         </div>
 
         {/* --- COLUNA DIREITA: Assets & Dicas --- */}
@@ -789,6 +884,113 @@ export default function SettingsGeralPage() {
                     </p>
                   </div>
                 </button>
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm p-8">
+            <h3 className="font-black text-lg mb-1">Imagens da Home</h3>
+            <p className="text-xs text-slate-500 mb-6">
+              Banner do topo e as 2 fotos de "Combinações Perfeitas". Em
+              branco, a loja mostra uma foto de reserva.
+            </p>
+
+            <div className="space-y-8">
+              {/* Banner do topo */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-black uppercase text-slate-400">
+                    Banner do Topo
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => bannerHomeInputRef.current?.click()}
+                    disabled={enviandoBannerHome}
+                    className="text-[#11d4c4] text-[10px] font-black uppercase hover:underline disabled:opacity-50"
+                  >
+                    {enviandoBannerHome ? "Enviando..." : "Alterar"}
+                  </button>
+                  <input
+                    ref={bannerHomeInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleUploadImagemHome("banner_home", e)}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => bannerHomeInputRef.current?.click()}
+                  disabled={enviandoBannerHome}
+                  className="w-full h-32 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center bg-slate-50 dark:bg-white/2 group hover:border-[#11d4c4]/40 transition-all cursor-pointer overflow-hidden"
+                >
+                  {formData.DS_URL_BANNER_HOME ? (
+                    <img
+                      src={formData.DS_URL_BANNER_HOME}
+                      alt="Banner da home"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-3xl text-slate-300 group-hover:scale-110 transition-transform">
+                        image
+                      </span>
+                      <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">
+                        Foto larga (recomendado 2000px)
+                      </p>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Combinações Perfeitas: 2 fotos */}
+              <div className="space-y-4">
+                <span className="text-xs font-black uppercase text-slate-400">
+                  Combinações Perfeitas
+                </span>
+                <div className="grid grid-cols-2 gap-4">
+                  {(
+                    [
+                      ["combinacao_1", combinacao1InputRef, enviandoCombinacao1, formData.DS_URL_FOTO_COMBINACAO_1],
+                      ["combinacao_2", combinacao2InputRef, enviandoCombinacao2, formData.DS_URL_FOTO_COMBINACAO_2],
+                    ] as const satisfies readonly [
+                      keyof typeof IMAGEM_HOME,
+                      React.RefObject<HTMLInputElement | null>,
+                      boolean,
+                      string,
+                    ][]
+                  ).map(([tipo, ref, enviando, url]) => (
+                    <button
+                      key={tipo}
+                      type="button"
+                      onClick={() => ref.current?.click()}
+                      disabled={enviando}
+                      className="aspect-[3/4] rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center bg-slate-50 dark:bg-white/2 group hover:border-[#11d4c4]/40 transition-all cursor-pointer overflow-hidden relative"
+                    >
+                      <input
+                        ref={ref}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => handleUploadImagemHome(tipo, e)}
+                      />
+                      {url ? (
+                        <img
+                          src={url}
+                          alt="Foto de combinações"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="material-symbols-outlined text-2xl text-slate-300 group-hover:scale-110 transition-transform">
+                          image
+                        </span>
+                      )}
+                      <span className="absolute bottom-2 inset-x-2 text-center text-[9px] font-black uppercase bg-black/60 text-white rounded-lg py-1">
+                        {enviando ? "Enviando..." : "Alterar"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           </section>

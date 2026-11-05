@@ -26,6 +26,17 @@ const ORDEM_CIRCULOS = [
   { nome: "Pulseiras", slug: "pulseiras" },
 ];
 
+// Banner do topo e fotos de "Combinações Perfeitas": fotos de reserva
+// usadas enquanto a loja não sobe as próprias em admin → Configurações
+// Gerais → Imagens da Home (ver DS_URL_BANNER_HOME e
+// DS_URL_FOTO_COMBINACAO_1/2 em ConfigPublica).
+const BANNER_HOME_RESERVA =
+  "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?q=80&w=2070&auto=format&fit=crop";
+const COMBINACAO_1_RESERVA =
+  "https://images.unsplash.com/photo-1611085583191-a3b181a88401?q=80&w=600&h=800&fit=crop";
+const COMBINACAO_2_RESERVA =
+  "https://images.unsplash.com/photo-1599643477877-530eb83abc8e?q=80&w=600&h=800&fit=crop";
+
 
 // Home montada no servidor (ao lado da API): chega pronta pro cliente e pro
 // Google, sem "Carregando...".
@@ -66,7 +77,7 @@ export default async function ZephiraHome() {
       <main className="flex-1 flex flex-col">
         <section className="relative w-full h-[400px] md:h-[500px] lg:h-[650px] overflow-hidden bg-bg-dark">
           <img
-            src="https://images.unsplash.com/photo-1605100804763-247f67b2548e?q=80&w=2070&auto=format&fit=crop"
+            src={config?.DS_URL_BANNER_HOME || BANNER_HOME_RESERVA}
             alt="Joias Zephira"
             className="w-full h-full object-cover object-center opacity-85 hover:scale-105 transition-transform duration-[2000ms]"
           />
@@ -104,12 +115,12 @@ export default async function ZephiraHome() {
           <div className="max-w-[1200px] mx-auto px-4 flex flex-col md:flex-row items-center gap-10 md:gap-16">
             <div className="w-full md:w-1/2 grid grid-cols-2 gap-4 sm:gap-6">
               <img
-                src="https://images.unsplash.com/photo-1611085583191-a3b181a88401?q=80&w=600&h=800&fit=crop"
+                src={config?.DS_URL_FOTO_COMBINACAO_1 || COMBINACAO_1_RESERVA}
                 alt="Combinação de Colares 1"
                 className="w-full h-full object-cover rounded-xl sm:rounded-3xl shadow-lg"
               />
               <img
-                src="https://images.unsplash.com/photo-1599643477877-530eb83abc8e?q=80&w=600&h=800&fit=crop"
+                src={config?.DS_URL_FOTO_COMBINACAO_2 || COMBINACAO_2_RESERVA}
                 alt="Combinação de Colares 2"
                 className="w-full h-full object-cover rounded-xl sm:rounded-3xl shadow-lg mt-8"
               />

@@ -226,3 +226,12 @@ o sistema tinha quebrado por causa disso.
 - **2026-11-04** — Páginas institucionais (Sobre, Como Comprar, Trocas,
   Garantia, FAQ, Fale Conosco) e a foto das categorias da home passam a
   ser editáveis no admin, sem precisar mexer em código.
+- **2026-11-05** — "Garantia de 1 ano" (texto fixo na barra de avisos do
+  topo) removido a pedido da loja. Banner do topo, as 2 fotos de
+  "Combinações Perfeitas" e o texto do rodapé da home passam a ser
+  editáveis em admin → Configurações Gerais → "Imagens da Home" (antes
+  fixos no código, fotos de banco de imagem — ver
+  `back-end/CLAUDE.md`, seção "Imagens da home e texto do rodapé"). A
+  foto do banner estava quebrada (Unsplash fora do ar) e foi trocada
+  por uma foto de reserva que funciona. Visual da home continua sendo
+  escolha da loja — só a infraestrutura de deixar editável é técnica.

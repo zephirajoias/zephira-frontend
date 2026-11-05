@@ -25,8 +25,8 @@ export function Footer() {
               <Logo className="text-base" altura={72} />
             </div>
             <p className="text-xs font-bold opacity-80 text-center lg:text-left mt-2 px-4 lg:px-0 leading-relaxed">
-              A beleza atemporal da prata 925 em joias feitas para realçar o seu
-              brilho único.
+              {config?.DS_TEXTO_RODAPE ||
+                "A beleza atemporal da prata 925 em joias feitas para realçar o seu brilho único."}
             </p>
           </div>
 
