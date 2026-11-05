@@ -135,9 +135,15 @@ export default function SettingsGeralPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await api.put("/admin/configuracoes/gerais", formData);
+      const { data } = await api.put("/admin/configuracoes/gerais", formData);
       setInitialData(formData);
-      toast.success("Configurações atualizadas!");
+      if (data?._migracaoPendente) {
+        toast.warn(
+          "Salvo! Frete grátis, parcelas e dados da empresa ainda não (uma atualização do sistema precisa rodar primeiro — já avisei o Gustavo).",
+        );
+      } else {
+        toast.success("Configurações atualizadas!");
+      }
     } catch (error) {
       toast.error("Erro ao salvar alterações.");
     } finally {
