@@ -27,6 +27,14 @@ interface ConfigData {
   NR_PACOTE_LARGURA: string;
   NR_PACOTE_COMPRIMENTO: string;
   NR_PACOTE_PESO: string;
+  // Barra de avisos da home (vazio = aviso desligado)
+  VL_FRETE_GRATIS_MINIMO: string;
+  NR_PARCELAS_SEM_JUROS: string;
+  // Dados da empresa (rodapé / Fale Conosco)
+  NM_RAZAO_SOCIAL: string;
+  NR_CNPJ: string;
+  DS_ENDERECO_LOJA: string;
+  DS_INSTAGRAM: string;
 }
 
 const CONFIG_VAZIA: ConfigData = {
@@ -48,6 +56,12 @@ const CONFIG_VAZIA: ConfigData = {
   NR_PACOTE_LARGURA: "12",
   NR_PACOTE_COMPRIMENTO: "17",
   NR_PACOTE_PESO: "0.3",
+  VL_FRETE_GRATIS_MINIMO: "",
+  NR_PARCELAS_SEM_JUROS: "",
+  NM_RAZAO_SOCIAL: "",
+  NR_CNPJ: "",
+  DS_ENDERECO_LOJA: "",
+  DS_INSTAGRAM: "",
 };
 
 export default function SettingsGeralPage() {
@@ -90,6 +104,14 @@ export default function SettingsGeralPage() {
         NR_PACOTE_COMPRIMENTO:
           config?.NR_PACOTE_COMPRIMENTO?.toString() || "17",
         NR_PACOTE_PESO: config?.NR_PACOTE_PESO?.toString() || "0.3",
+        VL_FRETE_GRATIS_MINIMO:
+          config?.VL_FRETE_GRATIS_MINIMO?.toString() || "",
+        NR_PARCELAS_SEM_JUROS:
+          config?.NR_PARCELAS_SEM_JUROS?.toString() || "",
+        NM_RAZAO_SOCIAL: config?.NM_RAZAO_SOCIAL || "",
+        NR_CNPJ: config?.NR_CNPJ || "",
+        DS_ENDERECO_LOJA: config?.DS_ENDERECO_LOJA || "",
+        DS_INSTAGRAM: config?.DS_INSTAGRAM || "",
       };
 
       setFormData(normalized);
@@ -528,6 +550,130 @@ export default function SettingsGeralPage() {
                       NR_PACOTE_PESO: e.target.value,
                     })
                   }
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Sessão: Barra de avisos da home */}
+          <section className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2">
+              <h3 className="font-black text-lg">Barra de Avisos da Home</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                A faixa colorida no topo da loja. Deixe um campo vazio pra
+                não mostrar aquele aviso.
+              </p>
+            </div>
+            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Frete grátis a partir de (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                  value={formData.VL_FRETE_GRATIS_MINIMO}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      VL_FRETE_GRATIS_MINIMO: e.target.value,
+                    })
+                  }
+                  placeholder="Deixe vazio pra não oferecer"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Parcelas sem juros (até quantas vezes)
+                </label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  max="24"
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                  value={formData.NR_PARCELAS_SEM_JUROS}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      NR_PARCELAS_SEM_JUROS: e.target.value,
+                    })
+                  }
+                  placeholder="Ex: 3"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Só prometa o número de parcelas que o Mercado Pago realmente
+                  oferece sem juros na sua conta.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Sessão: Dados da empresa */}
+          <section className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/2">
+              <h3 className="font-black text-lg">Dados da Empresa</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Aparecem no rodapé e na página Fale Conosco da loja (o
+                Decreto 7.962/2013 exige razão social, CNPJ e endereço numa
+                loja online).
+              </p>
+            </div>
+            <div className="p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Razão Social
+                  </label>
+                  <input
+                    className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                    value={formData.NM_RAZAO_SOCIAL}
+                    onChange={(e) =>
+                      setFormData({ ...formData, NM_RAZAO_SOCIAL: e.target.value })
+                    }
+                    placeholder="Ex: Zephira Comércio de Joias LTDA"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    CNPJ
+                  </label>
+                  <input
+                    className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                    value={formData.NR_CNPJ}
+                    onChange={(e) =>
+                      setFormData({ ...formData, NR_CNPJ: e.target.value })
+                    }
+                    placeholder="00.000.000/0001-00"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Endereço da loja
+                </label>
+                <input
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none"
+                  value={formData.DS_ENDERECO_LOJA}
+                  onChange={(e) =>
+                    setFormData({ ...formData, DS_ENDERECO_LOJA: e.target.value })
+                  }
+                  placeholder="Rua, número, bairro, cidade - UF, CEP"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Instagram
+                </label>
+                <input
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none"
+                  value={formData.DS_INSTAGRAM}
+                  onChange={(e) =>
+                    setFormData({ ...formData, DS_INSTAGRAM: e.target.value })
+                  }
+                  placeholder="@zephirajoias"
                 />
               </div>
             </div>
