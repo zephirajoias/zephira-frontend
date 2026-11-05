@@ -8,41 +8,40 @@ import Link from "next/link";
 
 type Lista = { data: ProdutoResumo[] };
 
-// Fotos e categorias da home definidas pela loja; não trocar pelas fotos
-// dos produtos (já foi feito e revertido a pedido da loja em 2026-09-26).
-const CIRCULOS = [
-  {
-    nome: "Anéis",
-    slug: "aneis",
-    img: "https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?q=80&w=400&h=400&fit=crop",
-  },
-  {
-    nome: "Brincos",
-    slug: "brincos",
-    img: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=400&h=400&fit=crop",
-  },
-  {
-    nome: "Colares",
-    slug: "colares",
-    img: "https://images.unsplash.com/photo-1599643478524-fb66f70000cb?q=80&w=400&h=400&fit=crop",
-  },
-  {
-    nome: "Pulseiras",
-    slug: "pulseiras",
-    img: "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=400&h=400&fit=crop",
-  },
+// Fotos padrão dos círculos "Navegue por Categorias": usadas só enquanto a
+// categoria não tiver foto própria cadastrada em admin → Categorias (a
+// de Colares estava quebrada — Unsplash tirou do ar a foto antiga — por
+// isso trocada por uma que existe). Assim que a loja subir uma foto pela
+// categoria, essa foto daqui para de ser usada (ver CIRCULOS abaixo).
+const FOTO_RESERVA: Record<string, string> = {
+  aneis: "https://images.unsplash.com/photo-1596944924616-7b38e7cfac36?q=80&w=400&h=400&fit=crop",
+  brincos: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?q=80&w=400&h=400&fit=crop",
+  colares: "https://images.unsplash.com/photo-1611652022419-a9419f74343d?q=80&w=400&h=400&fit=crop",
+  pulseiras: "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?q=80&w=400&h=400&fit=crop",
+};
+const ORDEM_CIRCULOS = [
+  { nome: "Anéis", slug: "aneis" },
+  { nome: "Brincos", slug: "brincos" },
+  { nome: "Colares", slug: "colares" },
+  { nome: "Pulseiras", slug: "pulseiras" },
 ];
 
 
 // Home montada no servidor (ao lado da API): chega pronta pro cliente e pro
 // Google, sem "Carregando...".
 export default async function ZephiraHome() {
-  const [{ config }, novidades] = await Promise.all([
+  const [{ config, categorias }, novidades] = await Promise.all([
     carregarDadosLoja(),
     buscarNoServidor<Lista>("/products?limit=8", 60),
   ]);
 
   const produtos = novidades?.data ?? [];
+  const CIRCULOS = ORDEM_CIRCULOS.map((c) => ({
+    ...c,
+    img:
+      categorias.find((cat) => cat.DS_SLUG === c.slug)?.DS_URL_IMAGEM ||
+      FOTO_RESERVA[c.slug],
+  }));
 
   const freteGratis = Number(config?.VL_FRETE_GRATIS_MINIMO) || 0;
   const parcelas = config?.NR_PARCELAS_SEM_JUROS ?? 3;

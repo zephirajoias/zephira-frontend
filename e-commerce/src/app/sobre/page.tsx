@@ -1,26 +1,27 @@
 import { PaginaInstitucional } from "@/components/PaginaInstitucional";
+import { renderizarConteudo } from "@/lib/conteudo";
+import { buscarNoServidor } from "@/lib/site";
 import type { Metadata } from "next";
-import Link from "next/link";
 
-export const metadata: Metadata = { title: "Sobre | Zephira Joias" };
+// Texto de reserva: só aparece se a API não responder (nunca deixa a
+// página em branco). O texto de verdade é editado no admin.
+const RESERVA = {
+  NM_TITULO: "Sobre a Zephira",
+  DS_CONTEUDO:
+    "A Zephira Joias é uma loja online de joias em prata 925, peças banhadas a ouro e aço inox.",
+};
 
-export default function SobrePage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const pagina = await buscarNoServidor<typeof RESERVA>("/paginas-institucionais/sobre");
+  return { title: `${(pagina ?? RESERVA).NM_TITULO} | Zephira Joias` };
+}
+
+export default async function SobrePage() {
+  const pagina =
+    (await buscarNoServidor<typeof RESERVA>("/paginas-institucionais/sobre")) ?? RESERVA;
   return (
-    <PaginaInstitucional titulo="Sobre a Zephira">
-      <p>
-        A Zephira Joias é uma loja online de joias em prata 925, peças banhadas
-        a ouro e aço inox: brincos, anéis, colares, pulseiras e conjuntos para
-        usar no dia a dia e em ocasiões especiais.
-      </p>
-      <p>
-        Todas as peças têm garantia de 1 ano contra defeitos de fabricação e
-        são enviadas para todo o Brasil, com o prazo e o preço do frete
-        mostrados antes de você pagar.
-      </p>
-      <p>
-        <Link href="/#novidades">Conheça as novidades</Link> ou{" "}
-        <Link href="/contato">fale com a gente</Link>.
-      </p>
+    <PaginaInstitucional titulo={pagina.NM_TITULO}>
+      {renderizarConteudo(pagina.DS_CONTEUDO)}
     </PaginaInstitucional>
   );
 }

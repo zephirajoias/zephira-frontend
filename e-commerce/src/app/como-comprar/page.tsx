@@ -1,41 +1,25 @@
 import { PaginaInstitucional } from "@/components/PaginaInstitucional";
+import { renderizarConteudo } from "@/lib/conteudo";
+import { buscarNoServidor } from "@/lib/site";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Como comprar | Zephira Joias" };
+const RESERVA = {
+  NM_TITULO: "Como comprar",
+  DS_CONTEUDO:
+    "Escolha a peça, calcule o frete pelo CEP no carrinho e pague pelo Mercado Pago.",
+};
 
-export default function ComoComprarPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const pagina = await buscarNoServidor<typeof RESERVA>("/paginas-institucionais/como-comprar");
+  return { title: `${(pagina ?? RESERVA).NM_TITULO} | Zephira Joias` };
+}
+
+export default async function ComoComprarPage() {
+  const pagina =
+    (await buscarNoServidor<typeof RESERVA>("/paginas-institucionais/como-comprar")) ?? RESERVA;
   return (
-    <PaginaInstitucional titulo="Como comprar">
-      <ol className="lista">
-        <li>
-          <strong>Escolha a peça.</strong> Na página do produto, selecione o
-          tamanho (quando houver) e toque em adicionar ao carrinho.
-        </li>
-        <li>
-          <strong>Calcule o frete.</strong> No carrinho, informe o seu CEP para
-          ver as opções de entrega, com preço e prazo de cada uma.
-        </li>
-        <li>
-          <strong>Entre na sua conta.</strong> Se ainda não tiver cadastro, ele
-          leva menos de um minuto. É por ela que você acompanha o pedido.
-        </li>
-        <li>
-          <strong>Escolha o endereço e pague.</strong> O pagamento é feito no
-          ambiente seguro do Mercado Pago, por Pix ou cartão de crédito.
-        </li>
-        <li>
-          <strong>Acompanhe.</strong> Em Minha conta você vê o status do pedido
-          e, depois do envio, o código de rastreio.
-        </li>
-      </ol>
-
-      <h2>Pagamento</h2>
-      <p>
-        O Pix é aprovado na hora. No cartão, o valor pode ser parcelado; as
-        parcelas disponíveis aparecem na tela de pagamento do Mercado Pago.
-        Pedidos não pagos em 24 horas são cancelados automaticamente e as peças
-        voltam para a loja.
-      </p>
+    <PaginaInstitucional titulo={pagina.NM_TITULO}>
+      {renderizarConteudo(pagina.DS_CONTEUDO)}
     </PaginaInstitucional>
   );
 }

@@ -1,18 +1,27 @@
 import { Contatos, PaginaInstitucional } from "@/components/PaginaInstitucional";
 import { carregarDadosLoja } from "@/lib/loja";
+import { buscarNoServidor } from "@/lib/site";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Fale conosco | Zephira Joias" };
+const RESERVA = {
+  NM_TITULO: "Fale conosco",
+  DS_CONTEUDO: "Dúvidas sobre uma peça, um pedido, troca ou garantia? Fale com a gente.",
+};
+
+export async function generateMetadata(): Promise<Metadata> {
+  const pagina = await buscarNoServidor<typeof RESERVA>("/paginas-institucionais/contato");
+  return { title: `${(pagina ?? RESERVA).NM_TITULO} | Zephira Joias` };
+}
 
 export default async function ContatoPage() {
-  const { config } = await carregarDadosLoja();
+  const [pagina, { config }] = await Promise.all([
+    buscarNoServidor<typeof RESERVA>("/paginas-institucionais/contato"),
+    carregarDadosLoja(),
+  ]);
+  const { NM_TITULO, DS_CONTEUDO } = pagina ?? RESERVA;
   return (
-    <PaginaInstitucional titulo="Fale conosco">
-      <p>
-        Dúvidas sobre uma peça, um pedido, troca ou garantia? Fale com a gente
-        por um dos canais abaixo. Se for sobre um pedido, tenha o número dele
-        em mãos (está em Minha conta).
-      </p>
+    <PaginaInstitucional titulo={NM_TITULO}>
+      <p>{DS_CONTEUDO}</p>
       <Contatos config={config} />
       {(config?.NM_RAZAO_SOCIAL || config?.NR_CNPJ || config?.DS_ENDERECO_LOJA) && (
         <>

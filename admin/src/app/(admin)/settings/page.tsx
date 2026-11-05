@@ -48,6 +48,14 @@ export default function SettingsPage() {
           color: "slate",
           href: "/settings_geral",
         },
+        {
+          title: "Páginas Institucionais",
+          description:
+            "Texto do rodapé da loja: Sobre, Como Comprar, Trocas, Garantia, FAQ e Fale Conosco.",
+          icon: "description",
+          color: "indigo",
+          href: "/paginas",
+        },
       ],
     },
   ];
