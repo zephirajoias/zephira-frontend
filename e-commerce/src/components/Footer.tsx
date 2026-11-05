@@ -21,8 +21,8 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-16">
           {/* Coluna 1: Logo */}
           <div className="flex flex-col items-center lg:items-start">
-            <div className="w-36 h-36 bg-white rounded-full flex flex-col items-center justify-center shadow-xl mb-4 overflow-hidden p-4">
-              <Logo className="text-base" altura={72} />
+            <div className="w-44 h-44 bg-white rounded-full flex flex-col items-center justify-center shadow-xl mb-4 overflow-hidden p-4">
+              <Logo className="text-base" altura={100} />
             </div>
             <p className="text-xs font-bold opacity-80 text-center lg:text-left mt-2 px-4 lg:px-0 leading-relaxed">
               {config?.DS_TEXTO_RODAPE ||
