@@ -107,7 +107,7 @@ export function Header() {
               onClick={closeMenu}
               className="flex items-center justify-center transition-transform hover:opacity-90 active:scale-95"
             >
-              <Logo className="text-xl sm:text-2xl" />
+              <Logo className="text-xl sm:text-2xl" altura={56} />
             </Link>
           </div>
 

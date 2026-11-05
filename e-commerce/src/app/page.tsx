@@ -76,6 +76,7 @@ export default async function ZephiraHome() {
   const avisos = [
     freteGratis > 0 && `Frete grátis acima de ${formatarPreco(freteGratis)}`,
     parcelas > 1 && `Até ${parcelas}x sem juros`,
+    "Enviamos para todo Brasil",
   ].filter(Boolean) as string[];
 
   return (
