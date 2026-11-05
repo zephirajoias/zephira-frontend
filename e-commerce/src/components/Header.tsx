@@ -90,7 +90,7 @@ export function Header() {
   return (
     <header className="bg-white border-b border-slate-100 sticky top-0 z-50 shadow-sm font-display">
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20 sm:h-24 gap-4 lg:gap-8">
+        <div className="flex items-center justify-between h-24 sm:h-28 gap-4 lg:gap-8">
           {/* LADO ESQUERDO: Hamburguer e Logo */}
           <div className="flex items-center gap-4 shrink-0">
             <button
@@ -107,7 +107,7 @@ export function Header() {
               onClick={closeMenu}
               className="flex items-center justify-center transition-transform hover:opacity-90 active:scale-95"
             >
-              <Logo className="text-xl sm:text-2xl" altura={56} />
+              <Logo className="text-xl sm:text-2xl" altura={90} />
             </Link>
           </div>
 
