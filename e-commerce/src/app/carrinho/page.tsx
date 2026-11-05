@@ -70,7 +70,9 @@ export default function CarrinhoPage() {
       .catch(() => {});
   }, [user]);
 
-  // Recalcula o frete sempre que o endereço escolhido muda
+  // Recalcula o frete sempre que o endereço ou o total do carrinho muda
+  // (o total entra no cálculo por causa do frete grátis a partir de um
+  // valor mínimo, configurável em Configurações Gerais).
   useEffect(() => {
     const endereco = enderecos.find(
       (e) => e.CD_ENDERECO === enderecoSelecionado,
@@ -84,14 +86,16 @@ export default function CarrinhoPage() {
     setCarregandoFrete(true);
     setFreteSelecionado(null);
     api
-      .get<OpcaoFrete[]>(`/frete/calcular?cep=${endereco.NR_CEP}`)
+      .get<OpcaoFrete[]>(
+        `/frete/calcular?cep=${endereco.NR_CEP}&subtotal=${totalPrice}`,
+      )
       .then((opcoes) => {
         setOpcoesFrete(opcoes);
         if (opcoes.length > 0) setFreteSelecionado(opcoes[0].idServico);
       })
       .catch(() => setOpcoesFrete([]))
       .finally(() => setCarregandoFrete(false));
-  }, [enderecoSelecionado, enderecos]);
+  }, [enderecoSelecionado, enderecos, totalPrice]);
 
   const formatMoney = (v: number) =>
     new Intl.NumberFormat("pt-BR", {
