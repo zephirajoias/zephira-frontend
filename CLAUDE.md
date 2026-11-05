@@ -223,3 +223,6 @@ o sistema tinha quebrado por causa disso.
   a galeria do produto troca pra essas fotos quando escolhida.
 - **2026-10-27** — "Adicionar Variação" deixa marcar vários tamanhos de
   uma vez (antes fechava depois de adicionar um só).
+- **2026-11-04** — Páginas institucionais (Sobre, Como Comprar, Trocas,
+  Garantia, FAQ, Fale Conosco) e a foto das categorias da home passam a
+  ser editáveis no admin, sem precisar mexer em código.
