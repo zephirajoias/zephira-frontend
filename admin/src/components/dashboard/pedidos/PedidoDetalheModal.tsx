@@ -42,6 +42,9 @@ interface PedidoDetalhe {
     NM_BAIRRO: string;
     NM_CIDADE: string;
     DS_UF: string;
+    // "RETIRADA" | "ENVIO" — pedidos antigos não têm essa chave, tratar
+    // como "ENVIO" (ver fallback no JSX).
+    DS_METODO_ENVIO?: string;
   };
   TS_CRIACAO: string;
   USUARIO: { NM_USUARIO: string; DS_EMAIL: string; NR_TELEFONE: string | null };
@@ -199,21 +202,40 @@ export function PedidoDetalheModal({
                       )}
                     </div>
                     <div className="bg-slate-50 dark:bg-white/5 rounded-xl p-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                        Endereço de Entrega
-                      </p>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                        {pedido.DS_SNAPSHOT_ENDERECO.NM_LOGRADOURO},{" "}
-                        {pedido.DS_SNAPSHOT_ENDERECO.NR_NUMERO}
-                        {pedido.DS_SNAPSHOT_ENDERECO.DS_COMPLEMENTO &&
-                          ` - ${pedido.DS_SNAPSHOT_ENDERECO.DS_COMPLEMENTO}`}
-                        <br />
-                        {pedido.DS_SNAPSHOT_ENDERECO.NM_BAIRRO},{" "}
-                        {pedido.DS_SNAPSHOT_ENDERECO.NM_CIDADE}/
-                        {pedido.DS_SNAPSHOT_ENDERECO.DS_UF}
-                        <br />
-                        CEP {pedido.DS_SNAPSHOT_ENDERECO.NR_CEP}
-                      </p>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          {pedido.DS_SNAPSHOT_ENDERECO.DS_METODO_ENVIO ===
+                          "RETIRADA"
+                            ? "Retirada"
+                            : "Endereço de Entrega"}
+                        </p>
+                        {pedido.DS_SNAPSHOT_ENDERECO.DS_METODO_ENVIO ===
+                          "RETIRADA" && (
+                          <span className="text-[9px] font-black uppercase bg-amber-400/20 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full">
+                            Combinar com o cliente
+                          </span>
+                        )}
+                      </div>
+                      {pedido.DS_SNAPSHOT_ENDERECO.DS_METODO_ENVIO ===
+                      "RETIRADA" ? (
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                          Cliente vai retirar pessoalmente em Salvador —
+                          combine o local e horário diretamente com ele.
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                          {pedido.DS_SNAPSHOT_ENDERECO.NM_LOGRADOURO},{" "}
+                          {pedido.DS_SNAPSHOT_ENDERECO.NR_NUMERO}
+                          {pedido.DS_SNAPSHOT_ENDERECO.DS_COMPLEMENTO &&
+                            ` - ${pedido.DS_SNAPSHOT_ENDERECO.DS_COMPLEMENTO}`}
+                          <br />
+                          {pedido.DS_SNAPSHOT_ENDERECO.NM_BAIRRO},{" "}
+                          {pedido.DS_SNAPSHOT_ENDERECO.NM_CIDADE}/
+                          {pedido.DS_SNAPSHOT_ENDERECO.DS_UF}
+                          <br />
+                          CEP {pedido.DS_SNAPSHOT_ENDERECO.NR_CEP}
+                        </p>
+                      )}
                     </div>
                   </section>
 
