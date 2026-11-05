@@ -235,3 +235,10 @@ o sistema tinha quebrado por causa disso.
   foto do banner estava quebrada (Unsplash fora do ar) e foi trocada
   por uma foto de reserva que funciona. Visual da home continua sendo
   escolha da loja — só a infraestrutura de deixar editável é técnica.
+- **2026-11-05** — Banner do topo vira carrossel: várias fotos, cada uma
+  com link próprio opcional (categoria, produto, página). Componente
+  `e-commerce/src/components/BannerCarousel.tsx` (cliente, gira sozinho
+  a cada 6s, fade entre fotos, bolinhas de navegação). No admin, a lista
+  de banners (`settings_geral/page.tsx`) é gerida à parte do resto do
+  formulário — adicionar/remover/reordenar chama a API na hora, não
+  espera o "Salvar" geral.

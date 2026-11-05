@@ -36,7 +36,8 @@ interface ConfigData {
   DS_ENDERECO_LOJA: string;
   DS_INSTAGRAM: string;
   // Imagens da home e texto do rodapé (antes fixos no código da loja)
-  DS_URL_BANNER_HOME: string;
+  // Banners do topo (carrossel) ficam fora do ConfigData: são geridos à
+  // parte via /admin/configuracoes/banner-home (ver estado `banners`).
   DS_URL_FOTO_COMBINACAO_1: string;
   DS_URL_FOTO_COMBINACAO_2: string;
   DS_TEXTO_RODAPE: string;
@@ -67,7 +68,6 @@ const CONFIG_VAZIA: ConfigData = {
   NR_CNPJ: "",
   DS_ENDERECO_LOJA: "",
   DS_INSTAGRAM: "",
-  DS_URL_BANNER_HOME: "",
   DS_URL_FOTO_COMBINACAO_1: "",
   DS_URL_FOTO_COMBINACAO_2: "",
   DS_TEXTO_RODAPE: "",
@@ -82,14 +82,22 @@ export default function SettingsGeralPage() {
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const faviconInputRef = useRef<HTMLInputElement>(null);
-  const bannerHomeInputRef = useRef<HTMLInputElement>(null);
   const combinacao1InputRef = useRef<HTMLInputElement>(null);
   const combinacao2InputRef = useRef<HTMLInputElement>(null);
+  const novoBannerInputRef = useRef<HTMLInputElement>(null);
   const [enviandoLogo, setEnviandoLogo] = useState(false);
   const [enviandoFavicon, setEnviandoFavicon] = useState(false);
-  const [enviandoBannerHome, setEnviandoBannerHome] = useState(false);
   const [enviandoCombinacao1, setEnviandoCombinacao1] = useState(false);
   const [enviandoCombinacao2, setEnviandoCombinacao2] = useState(false);
+
+  // Carrossel de banners do topo — gerido à parte do resto do formulário
+  // (cada ação chama a API na hora, não espera o "Salvar" geral).
+  const [banners, setBanners] = useState<{ url: string; link?: string | null }[]>([]);
+  const [novoBannerFile, setNovoBannerFile] = useState<File | null>(null);
+  const [novoBannerPreview, setNovoBannerPreview] = useState<string | null>(null);
+  const [novoBannerLink, setNovoBannerLink] = useState("");
+  const [enviandoNovoBanner, setEnviandoNovoBanner] = useState(false);
+  const [removendoBannerIndice, setRemovendoBannerIndice] = useState<number | null>(null);
 
   // Busca as configurações
   const fetchConfig = async () => {
@@ -127,7 +135,6 @@ export default function SettingsGeralPage() {
         NR_CNPJ: config?.NR_CNPJ || "",
         DS_ENDERECO_LOJA: config?.DS_ENDERECO_LOJA || "",
         DS_INSTAGRAM: config?.DS_INSTAGRAM || "",
-        DS_URL_BANNER_HOME: config?.DS_URL_BANNER_HOME || "",
         DS_URL_FOTO_COMBINACAO_1: config?.DS_URL_FOTO_COMBINACAO_1 || "",
         DS_URL_FOTO_COMBINACAO_2: config?.DS_URL_FOTO_COMBINACAO_2 || "",
         DS_TEXTO_RODAPE: config?.DS_TEXTO_RODAPE || "",
@@ -142,8 +149,20 @@ export default function SettingsGeralPage() {
     }
   };
 
+  const fetchBanners = async () => {
+    try {
+      const { data } = await api.get("/admin/configuracoes/banner-home");
+      setBanners(Array.isArray(data) ? data : []);
+    } catch (error) {
+      // Migração pendente ou erro pontual: deixa a lista vazia em vez de
+      // travar a tela inteira (o resto do formulário continua normal).
+      setBanners([]);
+    }
+  };
+
   useEffect(() => {
     fetchConfig();
+    fetchBanners();
   }, []);
 
   // Verifica se houve alteração (comparação profunda simples)
@@ -212,12 +231,6 @@ export default function SettingsGeralPage() {
   };
 
   const IMAGEM_HOME = {
-    banner_home: {
-      rota: "banner-home",
-      campo: "DS_URL_BANNER_HOME",
-      setEnviando: setEnviandoBannerHome,
-      sucesso: "Banner da home atualizado!",
-    },
     combinacao_1: {
       rota: "combinacao-1",
       campo: "DS_URL_FOTO_COMBINACAO_1",
@@ -262,6 +275,82 @@ export default function SettingsGeralPage() {
       );
     } finally {
       setEnviando(false);
+    }
+  };
+
+  // Seleciona uma foto pro carrossel: fica "em preparo" (preview + campo de
+  // link) até confirmar — só então sobe pra API, porque o link precisa ir
+  // junto do arquivo no mesmo POST.
+  const handleSelecionarBanner = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setNovoBannerFile(file);
+    setNovoBannerPreview(URL.createObjectURL(file));
+    setNovoBannerLink("");
+  };
+
+  const handleCancelarNovoBanner = () => {
+    if (novoBannerPreview) URL.revokeObjectURL(novoBannerPreview);
+    setNovoBannerFile(null);
+    setNovoBannerPreview(null);
+    setNovoBannerLink("");
+  };
+
+  const handleConfirmarNovoBanner = async () => {
+    if (!novoBannerFile) return;
+    setEnviandoNovoBanner(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", novoBannerFile);
+      fd.append("link", novoBannerLink.trim());
+
+      const { data } = await api.post(
+        "/admin/configuracoes/banner-home",
+        fd,
+        { headers: { "Content-Type": undefined } },
+      );
+      setBanners(Array.isArray(data) ? data : []);
+      handleCancelarNovoBanner();
+      toast.success("Banner adicionado!");
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message || "Erro ao adicionar o banner.",
+      );
+    } finally {
+      setEnviandoNovoBanner(false);
+    }
+  };
+
+  const handleRemoverBanner = async (indice: number) => {
+    setRemovendoBannerIndice(indice);
+    try {
+      const { data } = await api.delete(
+        `/admin/configuracoes/banner-home/${indice}`,
+      );
+      setBanners(Array.isArray(data) ? data : []);
+      toast.success("Banner removido!");
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message || "Erro ao remover o banner.",
+      );
+    } finally {
+      setRemovendoBannerIndice(null);
+    }
+  };
+
+  const handleMoverBanner = async (de: number, para: number) => {
+    if (para < 0 || para >= banners.length) return;
+    try {
+      const { data } = await api.put("/admin/configuracoes/banner-home/mover", {
+        de,
+        para,
+      });
+      setBanners(Array.isArray(data) ? data : []);
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.message || "Erro ao reordenar os banners.",
+      );
     }
   };
 
@@ -891,56 +980,137 @@ export default function SettingsGeralPage() {
           <section className="bg-white dark:bg-[#102220] rounded-3xl border border-slate-200 dark:border-white/5 shadow-sm p-8">
             <h3 className="font-black text-lg mb-1">Imagens da Home</h3>
             <p className="text-xs text-slate-500 mb-6">
-              Banner do topo e as 2 fotos de "Combinações Perfeitas". Em
-              branco, a loja mostra uma foto de reserva.
+              Carrossel do banner do topo (cada foto pode ter um link
+              próprio) e as 2 fotos de "Combinações Perfeitas". Em branco,
+              a loja mostra uma foto de reserva.
             </p>
 
             <div className="space-y-8">
-              {/* Banner do topo */}
+              {/* Carrossel do banner do topo */}
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-black uppercase text-slate-400">
-                    Banner do Topo
-                  </span>
+                <span className="text-xs font-black uppercase text-slate-400">
+                  Banner do Topo (carrossel)
+                </span>
+
+                {banners.length > 0 && (
+                  <div className="space-y-3">
+                    {banners.map((banner, i) => (
+                      <div
+                        key={banner.url + i}
+                        className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 dark:bg-white/2 border border-slate-100 dark:border-white/5"
+                      >
+                        <img
+                          src={banner.url}
+                          alt={`Banner ${i + 1}`}
+                          className="w-20 h-12 object-cover rounded-lg shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-black uppercase text-slate-400">
+                            Banner {i + 1}
+                          </p>
+                          <p className="text-xs font-bold truncate">
+                            {banner.link || (
+                              <span className="text-slate-400 font-medium">
+                                Sem link
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleMoverBanner(i, i - 1)}
+                            disabled={i === 0}
+                            className="size-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 disabled:opacity-20 transition-colors"
+                            title="Mover pra cima"
+                          >
+                            <span className="material-symbols-outlined text-base">
+                              arrow_upward
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoverBanner(i, i + 1)}
+                            disabled={i === banners.length - 1}
+                            className="size-8 flex items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-white/10 disabled:opacity-20 transition-colors"
+                            title="Mover pra baixo"
+                          >
+                            <span className="material-symbols-outlined text-base">
+                              arrow_downward
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoverBanner(i)}
+                            disabled={removendoBannerIndice === i}
+                            className="size-8 flex items-center justify-center rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 disabled:opacity-40 transition-colors"
+                            title="Remover"
+                          >
+                            <span className="material-symbols-outlined text-base">
+                              {removendoBannerIndice === i
+                                ? "hourglass_empty"
+                                : "delete"}
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {novoBannerFile ? (
+                  <div className="p-4 rounded-2xl border border-[#11d4c4]/30 bg-[#11d4c4]/5 space-y-3">
+                    <img
+                      src={novoBannerPreview!}
+                      alt="Prévia do novo banner"
+                      className="w-full h-32 object-cover rounded-xl"
+                    />
+                    <input
+                      className="w-full h-11 px-4 rounded-xl bg-white dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none text-sm"
+                      value={novoBannerLink}
+                      onChange={(e) => setNovoBannerLink(e.target.value)}
+                      placeholder="Link ao clicar (opcional): /categoria/aneis"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleConfirmarNovoBanner}
+                        disabled={enviandoNovoBanner}
+                        className="flex-1 h-10 rounded-xl bg-[#11d4c4] text-white font-black text-xs uppercase disabled:opacity-50 transition-all"
+                      >
+                        {enviandoNovoBanner ? "Enviando..." : "Adicionar"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelarNovoBanner}
+                        disabled={enviandoNovoBanner}
+                        className="h-10 px-4 rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 font-black text-xs uppercase disabled:opacity-50 transition-all"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <button
                     type="button"
-                    onClick={() => bannerHomeInputRef.current?.click()}
-                    disabled={enviandoBannerHome}
-                    className="text-[#11d4c4] text-[10px] font-black uppercase hover:underline disabled:opacity-50"
+                    onClick={() => novoBannerInputRef.current?.click()}
+                    className="w-full h-20 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center bg-slate-50 dark:bg-white/2 group hover:border-[#11d4c4]/40 transition-all cursor-pointer"
                   >
-                    {enviandoBannerHome ? "Enviando..." : "Alterar"}
+                    <span className="material-symbols-outlined text-2xl text-slate-300 group-hover:scale-110 transition-transform">
+                      add_photo_alternate
+                    </span>
+                    <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">
+                      Adicionar banner (recomendado 2000px de largura)
+                    </p>
                   </button>
-                  <input
-                    ref={bannerHomeInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => handleUploadImagemHome("banner_home", e)}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => bannerHomeInputRef.current?.click()}
-                  disabled={enviandoBannerHome}
-                  className="w-full h-32 rounded-2xl border-2 border-dashed border-slate-200 dark:border-white/10 flex flex-col items-center justify-center bg-slate-50 dark:bg-white/2 group hover:border-[#11d4c4]/40 transition-all cursor-pointer overflow-hidden"
-                >
-                  {formData.DS_URL_BANNER_HOME ? (
-                    <img
-                      src={formData.DS_URL_BANNER_HOME}
-                      alt="Banner da home"
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-3xl text-slate-300 group-hover:scale-110 transition-transform">
-                        image
-                      </span>
-                      <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">
-                        Foto larga (recomendado 2000px)
-                      </p>
-                    </>
-                  )}
-                </button>
+                )}
+                <input
+                  ref={novoBannerInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleSelecionarBanner}
+                />
               </div>
 
               {/* Combinações Perfeitas: 2 fotos */}

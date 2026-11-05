@@ -15,7 +15,8 @@ export interface ConfigPublica {
   NR_CNPJ?: string | null;
   DS_ENDERECO_LOJA?: string | null;
   DS_INSTAGRAM?: string | null;
-  DS_URL_BANNER_HOME?: string | null;
+  // JSON `[{"url","link"}, ...]` — ver components/BannerCarousel.
+  DS_BANNERS_HOME?: string | null;
   DS_URL_FOTO_COMBINACAO_1?: string | null;
   DS_URL_FOTO_COMBINACAO_2?: string | null;
   DS_TEXTO_RODAPE?: string | null;

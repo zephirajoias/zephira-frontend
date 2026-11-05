@@ -1,3 +1,4 @@
+import { BannerCarousel, type BannerSlide } from "@/components/BannerCarousel";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { ProdutoCard, type ProdutoResumo } from "@/components/ProdutoCard";
@@ -26,12 +27,16 @@ const ORDEM_CIRCULOS = [
   { nome: "Pulseiras", slug: "pulseiras" },
 ];
 
-// Banner do topo e fotos de "Combinações Perfeitas": fotos de reserva
-// usadas enquanto a loja não sobe as próprias em admin → Configurações
-// Gerais → Imagens da Home (ver DS_URL_BANNER_HOME e
+// Banner do topo (carrossel) e fotos de "Combinações Perfeitas": fotos de
+// reserva usadas enquanto a loja não sobe as próprias em admin →
+// Configurações Gerais → Imagens da Home (ver DS_BANNERS_HOME e
 // DS_URL_FOTO_COMBINACAO_1/2 em ConfigPublica).
-const BANNER_HOME_RESERVA =
-  "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?q=80&w=2070&auto=format&fit=crop";
+const BANNER_HOME_RESERVA: BannerSlide[] = [
+  {
+    url: "https://images.unsplash.com/photo-1601121141461-9d6647bca1ed?q=80&w=2070&auto=format&fit=crop",
+    link: null,
+  },
+];
 const COMBINACAO_1_RESERVA =
   "https://images.unsplash.com/photo-1611085583191-a3b181a88401?q=80&w=600&h=800&fit=crop";
 const COMBINACAO_2_RESERVA =
@@ -54,6 +59,18 @@ export default async function ZephiraHome() {
       FOTO_RESERVA[c.slug],
   }));
 
+  const banners = ((): BannerSlide[] => {
+    if (!config?.DS_BANNERS_HOME) return BANNER_HOME_RESERVA;
+    try {
+      const lista = JSON.parse(config.DS_BANNERS_HOME);
+      return Array.isArray(lista) && lista.length > 0
+        ? lista
+        : BANNER_HOME_RESERVA;
+    } catch {
+      return BANNER_HOME_RESERVA;
+    }
+  })();
+
   const freteGratis = Number(config?.VL_FRETE_GRATIS_MINIMO) || 0;
   const parcelas = config?.NR_PARCELAS_SEM_JUROS ?? 3;
   const avisos = [
@@ -75,13 +92,7 @@ export default async function ZephiraHome() {
       <Header />
 
       <main className="flex-1 flex flex-col">
-        <section className="relative w-full h-[400px] md:h-[500px] lg:h-[650px] overflow-hidden bg-bg-dark">
-          <img
-            src={config?.DS_URL_BANNER_HOME || BANNER_HOME_RESERVA}
-            alt="Joias Zephira"
-            className="w-full h-full object-cover object-center opacity-85 hover:scale-105 transition-transform duration-[2000ms]"
-          />
-        </section>
+        <BannerCarousel slides={banners} />
 
         <section className="py-16 sm:py-24 max-w-[1200px] mx-auto w-full px-4">
           <h2 className="text-center text-xl sm:text-2xl font-black text-text-main uppercase tracking-widest mb-12">
