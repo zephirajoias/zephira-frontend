@@ -30,6 +30,7 @@ interface ConfigData {
   // Barra de avisos da home (vazio = aviso desligado)
   VL_FRETE_GRATIS_MINIMO: string;
   NR_PARCELAS_SEM_JUROS: string;
+  VL_BRINDE_MINIMO: string;
   // Dados da empresa (rodapé / Fale Conosco)
   NM_RAZAO_SOCIAL: string;
   NR_CNPJ: string;
@@ -64,6 +65,7 @@ const CONFIG_VAZIA: ConfigData = {
   NR_PACOTE_PESO: "0.3",
   VL_FRETE_GRATIS_MINIMO: "",
   NR_PARCELAS_SEM_JUROS: "",
+  VL_BRINDE_MINIMO: "",
   NM_RAZAO_SOCIAL: "",
   NR_CNPJ: "",
   DS_ENDERECO_LOJA: "",
@@ -131,6 +133,7 @@ export default function SettingsGeralPage() {
           config?.VL_FRETE_GRATIS_MINIMO?.toString() || "",
         NR_PARCELAS_SEM_JUROS:
           config?.NR_PARCELAS_SEM_JUROS?.toString() || "",
+        VL_BRINDE_MINIMO: config?.VL_BRINDE_MINIMO?.toString() || "",
         NM_RAZAO_SOCIAL: config?.NM_RAZAO_SOCIAL || "",
         NR_CNPJ: config?.NR_CNPJ || "",
         DS_ENDERECO_LOJA: config?.DS_ENDERECO_LOJA || "",
@@ -774,6 +777,28 @@ export default function SettingsGeralPage() {
                 <p className="text-[10px] text-slate-400">
                   Só prometa o número de parcelas que o Mercado Pago realmente
                   oferece sem juros na sua conta.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Brinde (caixinha de joia) a partir de (R$)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                  value={formData.VL_BRINDE_MINIMO}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      VL_BRINDE_MINIMO: e.target.value,
+                    })
+                  }
+                  placeholder="Deixe vazio pra não oferecer"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Aparece no carrinho do cliente (não nessa faixa do topo).
                 </p>
               </div>
             </div>

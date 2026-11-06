@@ -20,6 +20,7 @@ export interface ConfigPublica {
   DS_URL_FOTO_COMBINACAO_1?: string | null;
   DS_URL_FOTO_COMBINACAO_2?: string | null;
   DS_TEXTO_RODAPE?: string | null;
+  VL_BRINDE_MINIMO?: string | number | null;
 }
 
 export interface DadosLoja {

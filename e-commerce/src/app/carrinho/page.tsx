@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import { useLoja } from "@/context/LojaContext";
 import { api, ApiError } from "@/lib/api";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
@@ -33,6 +34,7 @@ export default function CarrinhoPage() {
   const { items, removeFromCart, updateQuantity, totalPrice, totalItems, clearCart } =
     useCart();
   const { user, loading: carregandoAuth } = useAuth();
+  const { config } = useLoja();
   const router = useRouter();
 
   const [enderecos, setEnderecos] = useState<Endereco[]>([]);
@@ -106,6 +108,11 @@ export default function CarrinhoPage() {
   const valorFrete =
     opcoesFrete.find((o) => o.idServico === freteSelecionado)?.preco ?? 0;
   const totalComFrete = totalPrice + valorFrete;
+
+  // Brinde (caixinha de joia) a partir de X — Configurações Gerais no admin.
+  // Vazio/0 desliga o aviso (loja não promete brinde nenhum).
+  const brindeMinimo = Number(config?.VL_BRINDE_MINIMO) || 0;
+  const faltaParaBrinde = brindeMinimo - totalPrice;
 
   const salvarNovoEndereco = async () => {
     setErro(null);
@@ -286,6 +293,31 @@ export default function CarrinhoPage() {
 
             {/* RESUMO DO PEDIDO */}
             <aside className="w-full lg:w-96 space-y-6">
+              {brindeMinimo > 0 && (
+                <div
+                  className={`p-5 rounded-3xl border text-xs font-bold flex items-center gap-3 ${
+                    faltaParaBrinde <= 0
+                      ? "bg-primary/10 border-primary/30 text-text-main"
+                      : "bg-white border-slate-100 shadow-sm text-slate-500"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-2xl text-primary shrink-0">
+                    redeem
+                  </span>
+                  {faltaParaBrinde <= 0 ? (
+                    <span>
+                      Parabéns! Seu pedido ganhou uma caixinha de joia de
+                      brinde. 🎁
+                    </span>
+                  ) : (
+                    <span>
+                      Falta {formatMoney(faltaParaBrinde)} para ganhar uma
+                      caixinha de joia de brinde.
+                    </span>
+                  )}
+                </div>
+              )}
+
               {!carregandoAuth && !user && (
                 <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm text-center">
                   <p className="text-sm font-bold text-slate-500 mb-4">
