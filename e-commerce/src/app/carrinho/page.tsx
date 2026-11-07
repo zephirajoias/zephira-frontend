@@ -58,6 +58,7 @@ export default function CarrinhoPage() {
 
   const [erro, setErro] = useState<string | null>(null);
   const [finalizando, setFinalizando] = useState(false);
+  const [buscandoCep, setBuscandoCep] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -113,6 +114,41 @@ export default function CarrinhoPage() {
   // Vazio/0 desliga o aviso (loja não promete brinde nenhum).
   const brindeMinimo = Number(config?.VL_BRINDE_MINIMO) || 0;
   const faltaParaBrinde = brindeMinimo - totalPrice;
+
+  // Preenche logradouro/bairro/cidade/UF a partir do CEP (ViaCEP, sem
+  // chave). Número e complemento continuam manuais — o ViaCEP não sabe
+  // essa parte do endereço.
+  const buscarEnderecoPorCep = async (cepDigitado: string) => {
+    const cepLimpo = cepDigitado.replace(/\D/g, "");
+    if (cepLimpo.length !== 8) return;
+
+    setBuscandoCep(true);
+    try {
+      const resposta = await fetch(
+        `https://viacep.com.br/ws/${cepLimpo}/json/`,
+      );
+      const dados = await resposta.json();
+
+      if (dados.erro) {
+        setErro("CEP não encontrado.");
+        return;
+      }
+
+      setErro(null);
+      setNovoEndereco((prev) => ({
+        ...prev,
+        NM_LOGRADOURO: dados.logradouro || prev.NM_LOGRADOURO,
+        NM_BAIRRO: dados.bairro || prev.NM_BAIRRO,
+        NM_CIDADE: dados.localidade || prev.NM_CIDADE,
+        DS_UF: dados.uf || prev.DS_UF,
+      }));
+    } catch {
+      // ViaCEP fora do ar ou sem internet: deixa o cliente preencher na
+      // mão, não trava o formulário.
+    } finally {
+      setBuscandoCep(false);
+    }
+  };
 
   const salvarNovoEndereco = async () => {
     setErro(null);
@@ -374,17 +410,28 @@ export default function CarrinhoPage() {
 
                   {mostrarNovoEndereco && (
                     <div className="space-y-2">
-                      <input
-                        placeholder="CEP"
-                        value={novoEndereco.NR_CEP}
-                        onChange={(e) =>
-                          setNovoEndereco({
-                            ...novoEndereco,
-                            NR_CEP: e.target.value,
-                          })
-                        }
-                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary"
-                      />
+                      <div className="relative">
+                        <input
+                          placeholder="CEP"
+                          value={novoEndereco.NR_CEP}
+                          onChange={(e) => {
+                            setNovoEndereco({
+                              ...novoEndereco,
+                              NR_CEP: e.target.value,
+                            });
+                            if (e.target.value.replace(/\D/g, "").length === 8) {
+                              buscarEnderecoPorCep(e.target.value);
+                            }
+                          }}
+                          onBlur={(e) => buscarEnderecoPorCep(e.target.value)}
+                          className="w-full p-2.5 pr-20 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:border-primary"
+                        />
+                        {buscandoCep && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-400">
+                            Buscando...
+                          </span>
+                        )}
+                      </div>
                       <input
                         placeholder="Logradouro"
                         value={novoEndereco.NM_LOGRADOURO}

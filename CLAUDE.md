@@ -149,6 +149,19 @@ em produção: com 4s no build a home já saiu vazia uma vez.
 Carrinho: só é esvaziado em `/minha-conta?pedido=...` (volta do Mercado
 Pago), não antes de ir pagar. `clearCart` apaga também o `localStorage`.
 
+## CEP preenche o endereço sozinho (ViaCEP)
+
+`carrinho/page.tsx`, formulário de novo endereço: ao digitar 8 dígitos
+no CEP (ou sair do campo), chama `https://viacep.com.br/ws/<cep>/json/`
+direto do navegador (sem chave, sem passar pelo backend) e preenche
+logradouro/bairro/cidade/UF. Número e complemento continuam manuais —
+o ViaCEP não sabe essa parte. CEP não encontrado (`{"erro": true}`)
+mostra "CEP não encontrado."; falha de rede não trava o formulário, só
+deixa o cliente preencher na mão. Esse é o único formulário de endereço
+novo da loja (`minha-conta/page.tsx` só lista/apaga endereço já
+cadastrado) — se um segundo formulário de endereço aparecer, replicar o
+mesmo padrão.
+
 ## Cold start do Render — sempre tratar timeout na UI
 
 O backend dorme depois de ~15min sem uso; primeiro request pode levar
