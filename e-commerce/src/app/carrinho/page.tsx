@@ -175,7 +175,9 @@ export default function CarrinhoPage() {
       return;
     }
 
-    if (!freteSelecionado) {
+    // freteSelecionado pode ser 0 (Retirada na loja) — não pode usar
+    // "!freteSelecionado" aqui, 0 é falsy em JS e bloquearia a retirada.
+    if (freteSelecionado === null) {
       setErro("Selecione uma opção de frete.");
       return;
     }
@@ -607,7 +609,7 @@ export default function CarrinhoPage() {
                   <div className="flex justify-between text-sm font-medium opacity-70">
                     <span>Frete</span>
                     <span>
-                      {freteSelecionado
+                      {freteSelecionado !== null
                         ? formatMoney(valorFrete)
                         : "Selecione o endereço"}
                     </span>
