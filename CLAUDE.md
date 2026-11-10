@@ -26,6 +26,20 @@ Monorepo pnpm de verdade (`pnpm-lock.yaml`). Rodar `npm install` aqui
 quebra a resolução de dependências (peer deps do Next ficam
 inconsistentes). Usar sempre `pnpm add`/`pnpm install`.
 
+## admin: toast sempre via `src/lib/toast.ts`, nunca `react-toastify` direto
+
+O admin tinha ~20 arquivos (modais, páginas) importando `toast` de
+`react-toastify` direto — achado ao gerar um grafo de conhecimento do
+repo com o Graphify (2026-11-09), que mostrou `react-toastify` como
+"ponte" entre quase todas as comunidades do admin só por estar espalhado
+assim, sem nenhuma relação de negócio real. Centralizado em
+`admin/src/lib/toast.ts` (`toast.success/error/warn/info`, mesma
+assinatura de sempre — só troca o import), pra configurar tema/duração/
+posição num lugar só no futuro. `admin/src/app/layout.tsx` continua
+importando `ToastContainer` e o CSS (`react-toastify/dist/ReactToastify.css`)
+direto — é o único ponto de montagem, não precisa passar pelo helper.
+Loja (e-commerce) não usa `react-toastify`.
+
 ## admin: `src/lib/api.ts` — NUNCA fixar `Content-Type` na instância axios
 
 Bug real que já custou duas rodadas de investigação: se a instância do
@@ -255,3 +269,8 @@ o sistema tinha quebrado por causa disso.
   de banners (`settings_geral/page.tsx`) é gerida à parte do resto do
   formulário — adicionar/remover/reordenar chama a API na hora, não
   espera o "Salvar" geral.
+- **2026-11-09** — Grafo de conhecimento do repo gerado com o Graphify
+  (admin + e-commerce, e um separado em `back-end/`) — ferramenta de
+  dev, não vira parte do site. Achado nele: toast do admin centralizado
+  em `admin/src/lib/toast.ts` (ver seção própria), substituindo ~20
+  imports diretos de `react-toastify`.

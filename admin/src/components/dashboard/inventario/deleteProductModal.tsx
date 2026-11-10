@@ -2,7 +2,7 @@
 
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 
 interface DeleteProductModalProps {
   isOpen: boolean;

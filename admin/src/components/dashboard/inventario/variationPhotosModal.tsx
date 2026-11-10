@@ -5,7 +5,7 @@ import api from "@/lib/api";
 import { ImagePlus, Loader2, Trash2, Upload, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 
 interface Variacao {
   CD_VARIACAO: number;

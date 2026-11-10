@@ -3,7 +3,7 @@
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 
 interface NewPromotionModalProps {
   isOpen: boolean;

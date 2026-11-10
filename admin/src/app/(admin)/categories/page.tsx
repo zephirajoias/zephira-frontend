@@ -3,7 +3,7 @@
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 
 // Modais
 import { DeleteCategoryModal } from "@/components/dashboard/categories/DeleteCategoryModal";

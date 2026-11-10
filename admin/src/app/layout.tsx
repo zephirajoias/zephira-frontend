@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import { ReactNode } from "react";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer } from "@/lib/toast";
 import "react-toastify/dist/ReactToastify.css";
 import "./globals.css";
 

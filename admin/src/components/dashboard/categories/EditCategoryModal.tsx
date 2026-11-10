@@ -1,6 +1,6 @@
 "use client";
 
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import Image from "next/image";

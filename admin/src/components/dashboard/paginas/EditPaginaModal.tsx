@@ -4,7 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { renderizarConteudo } from "@/lib/conteudo";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 
 export interface Pagina {
   DS_SLUG: string;

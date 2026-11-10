@@ -5,7 +5,7 @@ import api from "@/lib/api";
 import { sugestaoDeTamanho } from "@/lib/tamanhos";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 
 // Interface simplificada do que vem da tabela pai
 interface ProductParent {

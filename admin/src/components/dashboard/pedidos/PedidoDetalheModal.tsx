@@ -4,7 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 
 interface PedidoDetalheModalProps {
   cdPedido: number | null;

@@ -3,7 +3,7 @@
 import { EditPaginaModal, type Pagina } from "@/components/dashboard/paginas/EditPaginaModal";
 import api from "@/lib/api";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 
 const ICONES: Record<string, string> = {
   sobre: "storefront",

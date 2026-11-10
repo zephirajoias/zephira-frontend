@@ -3,7 +3,7 @@
 import api from "@/lib/api";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 
 interface Categoria {
   CD_CATEGORIA: number;

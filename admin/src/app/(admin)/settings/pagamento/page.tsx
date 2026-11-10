@@ -9,7 +9,7 @@ import {
 } from "@/lib/taxasPagamento";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 
 export default function TaxasPagamentoPage() {
   const [taxas, setTaxas] = useState<TaxasPagamento>(

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 import { sugestaoDeTamanho } from "@/lib/tamanhos";
 import { SimulacaoRecebimento } from "./SimulacaoRecebimento";
 

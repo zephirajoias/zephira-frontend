@@ -4,7 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import { useUserData } from "@/hooks/useUserData";
 import api from "@/lib/api";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 
 interface UserFormModalProps {
   isOpen: boolean;

@@ -4,7 +4,7 @@ import { Modal } from "@/components/ui/Modal";
 import api from "@/lib/api";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { sugestaoDeTamanho } from "@/lib/tamanhos";
-import { toast } from "react-toastify";
+import { toast } from "@/lib/toast";
 import { SimulacaoRecebimento } from "./SimulacaoRecebimento";
 
 interface ProdutoBase {
