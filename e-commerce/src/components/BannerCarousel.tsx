@@ -13,6 +13,13 @@ export interface BannerSlide {
 // Imagens da Home. Gira sozinho a cada 6s quando tem mais de 1 foto.
 export function BannerCarousel({ slides }: { slides: BannerSlide[] }) {
   const [atual, setAtual] = useState(0);
+  // A caixa segue a proporção real da foto ativa (nunca o contrário):
+  // antes a altura era fixa em px e cortava as laterais da imagem no
+  // celular (texto do banner cortado, ex: "BLACK FRIDAY" virava "ACK
+  // DAY"), porque a foto é larga e a tela é estreita. Começa num valor
+  // plausível de banner de loja só pra não pular a página antes da
+  // primeira foto carregar.
+  const [aspectRatio, setAspectRatio] = useState(21 / 9);
 
   useEffect(() => {
     if (slides.length < 2) return;
@@ -25,13 +32,25 @@ export function BannerCarousel({ slides }: { slides: BannerSlide[] }) {
   if (slides.length === 0) return null;
 
   return (
-    <section className="relative w-full h-[400px] md:h-[500px] lg:h-[650px] overflow-hidden bg-bg-dark">
+    <section
+      className="relative w-full max-h-[400px] md:max-h-[500px] lg:max-h-[650px] overflow-hidden bg-bg-dark"
+      style={{ aspectRatio }}
+    >
       {slides.map((slide, i) => {
         const foto = (
           <img
             src={slide.url}
             alt="Joias Zephira"
-            className="w-full h-full object-cover object-center"
+            className="w-full h-full object-contain object-center"
+            onLoad={(e) => {
+              // Só a foto visível decide a proporção — trocar de slide
+              // com proporções diferentes ajusta a caixa suavemente.
+              if (i !== atual) return;
+              const { naturalWidth, naturalHeight } = e.currentTarget;
+              if (naturalWidth && naturalHeight) {
+                setAspectRatio(naturalWidth / naturalHeight);
+              }
+            }}
           />
         );
         return (

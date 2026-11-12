@@ -124,6 +124,34 @@ Supabase Storage precisa estar em `images.remotePatterns` no
 `next.config.ts` do e-commerce — se aparecer imagem quebrada depois de
 trocar a URL do bucket/projeto Supabase, checar isso primeiro.
 
+## Desconto no Pix é só visual, não mexe no checkout
+
+`VL_DESCONTO_PIX_PERCENTUAL` (admin → Configurações Gerais) aparece ao
+lado do preço no card de produto (`ProdutoCard.tsx`) e na página do
+produto (`produto/[slug]/Produto.tsx`), mesmo lugar do "Nx sem juros" —
+via `precoComDescontoPix` em `lib/formato.ts`. É só informativo: não
+recalcula `VL_TOTAL`, não manda nada diferente no checkout. O checkout
+continua indo pro Mercado Pago (Checkout Pro, redireciona pra página
+deles) exatamente como sempre — ver `back-end/CLAUDE.md`, seção
+"Desconto no Pix (visual)", que também explica por que não dá pra
+simplesmente "tornar isso real" sem repensar o checkout inteiro (saber o
+método de pagamento antes de gerar a preferência). Vazio/0 desliga a
+linha, mesmo padrão de `VL_BRINDE_MINIMO`.
+
+## Banner do topo (carrossel): a caixa segue a foto, não o contrário
+
+`BannerCarousel.tsx` tinha altura fixa em `px` por breakpoint
+(`h-[400px] md:h-[500px] lg:h-[650px]`) com `object-cover` — cortava as
+laterais da foto no celular porque a imagem é larga (desenhada pro
+desktop) e o celular é estreito, chegando a cortar texto do banner
+(reportado 2026-11-11: "BLACK FRIDAY" virava "ACK DAY" no celular).
+Trocado pra `aspectRatio` lido do `naturalWidth`/`naturalHeight` da
+própria foto no `onLoad` (a caixa muda de tamanho pra caber a foto
+inteira, nunca corta), com os pixels antigos virando `max-height` — só
+entra em ação se alguém subir uma foto desproporcionalmente alta. Não
+cria imagem diferente por tela: é a mesma foto, só sem forçar um
+recorte que ela não foi desenhada pra levar.
+
 ## Preview de link e Google (e-commerce)
 
 As páginas de produto e categoria são `"use client"` e não podem exportar
@@ -274,3 +302,7 @@ o sistema tinha quebrado por causa disso.
   dev, não vira parte do site. Achado nele: toast do admin centralizado
   em `admin/src/lib/toast.ts` (ver seção própria), substituindo ~20
   imports diretos de `react-toastify`.
+- **2026-11-11** — Desconto no Pix (visual, não mexe em checkout) ao
+  lado do preço do produto. Banner do topo corrigido: a caixa agora
+  segue a proporção real da foto em vez de forçar um recorte fixo (ver
+  seções próprias).

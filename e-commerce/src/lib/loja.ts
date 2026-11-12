@@ -21,6 +21,7 @@ export interface ConfigPublica {
   DS_URL_FOTO_COMBINACAO_2?: string | null;
   DS_TEXTO_RODAPE?: string | null;
   VL_BRINDE_MINIMO?: string | number | null;
+  VL_DESCONTO_PIX_PERCENTUAL?: string | number | null;
 }
 
 export interface DadosLoja {

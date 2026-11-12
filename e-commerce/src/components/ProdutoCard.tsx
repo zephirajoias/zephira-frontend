@@ -1,7 +1,12 @@
 "use client";
 
 import { useLoja } from "@/context/LojaContext";
-import { descontoPromocao, formatarPreco, parcelasSemJuros } from "@/lib/formato";
+import {
+  descontoPromocao,
+  formatarPreco,
+  parcelasSemJuros,
+  precoComDescontoPix,
+} from "@/lib/formato";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -31,6 +36,7 @@ export function ProdutoCard({
   const precoFinal = produto.VL_PRECO_PROMOCIONAL ?? produto.VL_PRECO;
   const parcelas = parcelasSemJuros(precoFinal, config?.NR_PARCELAS_SEM_JUROS);
   const desconto = descontoPromocao(produto.VL_PRECO, produto.VL_PRECO_PROMOCIONAL);
+  const pix = precoComDescontoPix(precoFinal, config?.VL_DESCONTO_PIX_PERCENTUAL);
 
   return (
     <Link href={`/produto/${produto.DS_SLUG}`} className="flex flex-col group">
@@ -68,6 +74,11 @@ export function ProdutoCard({
         {parcelas && (
           <p className="text-xs font-medium text-slate-500 mt-1">
             ou {parcelas.vezes}x de {parcelas.valor} sem juros
+          </p>
+        )}
+        {pix && (
+          <p className="text-xs font-medium text-emerald-600 mt-0.5">
+            {pix.valor} no Pix
           </p>
         )}
       </div>

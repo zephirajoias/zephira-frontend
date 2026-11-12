@@ -31,6 +31,7 @@ interface ConfigData {
   VL_FRETE_GRATIS_MINIMO: string;
   NR_PARCELAS_SEM_JUROS: string;
   VL_BRINDE_MINIMO: string;
+  VL_DESCONTO_PIX_PERCENTUAL: string;
   // Dados da empresa (rodapé / Fale Conosco)
   NM_RAZAO_SOCIAL: string;
   NR_CNPJ: string;
@@ -66,6 +67,7 @@ const CONFIG_VAZIA: ConfigData = {
   VL_FRETE_GRATIS_MINIMO: "",
   NR_PARCELAS_SEM_JUROS: "",
   VL_BRINDE_MINIMO: "",
+  VL_DESCONTO_PIX_PERCENTUAL: "",
   NM_RAZAO_SOCIAL: "",
   NR_CNPJ: "",
   DS_ENDERECO_LOJA: "",
@@ -134,6 +136,8 @@ export default function SettingsGeralPage() {
         NR_PARCELAS_SEM_JUROS:
           config?.NR_PARCELAS_SEM_JUROS?.toString() || "",
         VL_BRINDE_MINIMO: config?.VL_BRINDE_MINIMO?.toString() || "",
+        VL_DESCONTO_PIX_PERCENTUAL:
+          config?.VL_DESCONTO_PIX_PERCENTUAL?.toString() || "",
         NM_RAZAO_SOCIAL: config?.NM_RAZAO_SOCIAL || "",
         NR_CNPJ: config?.NR_CNPJ || "",
         DS_ENDERECO_LOJA: config?.DS_ENDERECO_LOJA || "",
@@ -799,6 +803,31 @@ export default function SettingsGeralPage() {
                 />
                 <p className="text-[10px] text-slate-400">
                   Aparece no carrinho do cliente (não nessa faixa do topo).
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                  Desconto no Pix (%)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  className="w-full h-12 px-4 rounded-xl bg-slate-50 dark:bg-black/20 border-none focus:ring-2 focus:ring-[#11d4c4]/20 transition-all outline-none font-bold"
+                  value={formData.VL_DESCONTO_PIX_PERCENTUAL}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      VL_DESCONTO_PIX_PERCENTUAL: e.target.value,
+                    })
+                  }
+                  placeholder="Deixe vazio pra não mostrar"
+                />
+                <p className="text-[10px] text-slate-400">
+                  Só informativo (aparece ao lado do preço na loja) — não
+                  muda o valor cobrado. O desconto de verdade no Pix, se
+                  houver, é o que a conta do Mercado Pago aplicar.
                 </p>
               </div>
             </div>

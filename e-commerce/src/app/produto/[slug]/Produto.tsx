@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { useCart } from "@/context/CartContext";
 import { useLoja } from "@/context/LojaContext";
-import { descontoPromocao, parcelasSemJuros } from "@/lib/formato";
+import { descontoPromocao, parcelasSemJuros, precoComDescontoPix } from "@/lib/formato";
 import { api, ApiError } from "@/lib/api";
 import Image from "next/image";
 import Link from "next/link";
@@ -265,6 +265,19 @@ export default function ProdutoDetalhePage({
                   parcelas && (
                     <p className="text-sm font-medium text-slate-500 mt-1">
                       ou {parcelas.vezes}x de {parcelas.valor} sem juros
+                    </p>
+                  )
+                );
+              })()}
+              {(() => {
+                const pix = precoComDescontoPix(
+                  produto.VL_PRECO_PROMOCIONAL ?? produto.VL_PRECO,
+                  config?.VL_DESCONTO_PIX_PERCENTUAL,
+                );
+                return (
+                  pix && (
+                    <p className="text-sm font-medium text-emerald-600 mt-0.5">
+                      {pix.valor} no Pix ({pix.percentual}% de desconto)
                     </p>
                   )
                 );

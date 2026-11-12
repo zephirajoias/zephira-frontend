@@ -23,6 +23,22 @@ export function parcelasSemJuros(
 }
 
 /**
+ * Preço com desconto do Pix pra mostrar junto do preço, ou null se não
+ * houver desconto configurado. Só informativo — não muda preço real,
+ * é o cliente tendo noção do valor antes de ir pro pagamento (o desconto
+ * de verdade, se houver, é o que a conta do Mercado Pago aplicar lá).
+ */
+export function precoComDescontoPix(
+  preco: string | number,
+  percentual?: number | string | null,
+): { percentual: number; valor: string } | null {
+  const total = Number(preco);
+  const pct = Number(percentual);
+  if (!total || !pct || pct <= 0) return null;
+  return { percentual: pct, valor: formatarPreco(total * (1 - pct / 100)) };
+}
+
+/**
  * Desconto da promoção em % inteiro (ex: 20), ou null se não houver
  * promoção de verdade (promocional vazio ou não menor que o preço normal).
  */
