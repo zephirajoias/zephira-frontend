@@ -60,6 +60,15 @@ export default function CarrinhoPage() {
   const [finalizando, setFinalizando] = useState(false);
   const [buscandoCep, setBuscandoCep] = useState(false);
 
+  const [codigoCupom, setCodigoCupom] = useState("");
+  const [cupomAplicado, setCupomAplicado] = useState<{
+    codigo: string;
+    desconto: number;
+    freteGratis: boolean;
+  } | null>(null);
+  const [erroCupom, setErroCupom] = useState<string | null>(null);
+  const [validandoCupom, setValidandoCupom] = useState(false);
+
   useEffect(() => {
     if (!user) return;
 
@@ -106,9 +115,11 @@ export default function CarrinhoPage() {
       currency: "BRL",
     }).format(v);
 
-  const valorFrete =
+  const valorFreteBase =
     opcoesFrete.find((o) => o.idServico === freteSelecionado)?.preco ?? 0;
-  const totalComFrete = totalPrice + valorFrete;
+  const valorFrete = cupomAplicado?.freteGratis ? 0 : valorFreteBase;
+  const descontoCupom = cupomAplicado?.desconto ?? 0;
+  const totalComFrete = totalPrice - descontoCupom + valorFrete;
 
   // Brinde (caixinha de joia) a partir de X — Configurações Gerais no admin.
   // Vazio/0 desliga o aviso (loja não promete brinde nenhum).
@@ -169,6 +180,39 @@ export default function CarrinhoPage() {
     }
   };
 
+  const aplicarCupom = async () => {
+    const codigo = codigoCupom.trim().toUpperCase();
+    if (!codigo) return;
+
+    setValidandoCupom(true);
+    setErroCupom(null);
+    try {
+      const resultado = await api.post<{
+        desconto: number;
+        freteGratis: boolean;
+      }>("/loja/cupons/validar", {
+        DS_CODIGO: codigo,
+        VL_SUBTOTAL: totalPrice,
+      });
+      setCupomAplicado({ codigo, ...resultado });
+    } catch (err) {
+      setCupomAplicado(null);
+      setErroCupom(
+        err instanceof ApiError
+          ? err.body?.message || "Cupom inválido."
+          : "Não foi possível validar o cupom.",
+      );
+    } finally {
+      setValidandoCupom(false);
+    }
+  };
+
+  const removerCupom = () => {
+    setCupomAplicado(null);
+    setCodigoCupom("");
+    setErroCupom(null);
+  };
+
   const finalizarCompra = async () => {
     if (!enderecoSelecionado) {
       setErro("Selecione ou cadastre um endereço de entrega.");
@@ -196,6 +240,7 @@ export default function CarrinhoPage() {
           QT_ITEM: i.quantidade,
         })),
         CD_SERVICO_FRETE: freteSelecionado,
+        DS_CODIGO_PROMOCIONAL: cupomAplicado?.codigo,
       });
 
       // O carrinho continua cheio enquanto o cliente está no Mercado Pago:
@@ -601,16 +646,64 @@ export default function CarrinhoPage() {
                   Resumo
                 </h2>
 
+                <div className="mb-6">
+                  {cupomAplicado ? (
+                    <div className="flex items-center justify-between gap-2 bg-primary/10 border border-primary/30 rounded-2xl px-4 py-3">
+                      <span className="text-xs font-black text-primary uppercase tracking-wider">
+                        Cupom {cupomAplicado.codigo} aplicado
+                      </span>
+                      <button
+                        onClick={removerCupom}
+                        className="text-[10px] font-bold text-white/50 hover:text-white uppercase tracking-widest"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="flex gap-2">
+                        <input
+                          placeholder="Cupom de desconto"
+                          value={codigoCupom}
+                          onChange={(e) => setCodigoCupom(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && aplicarCupom()}
+                          className="flex-1 min-w-0 p-3 bg-white/5 border border-white/15 rounded-xl text-xs font-bold outline-none focus:border-primary placeholder:text-white/40 uppercase"
+                        />
+                        <button
+                          onClick={aplicarCupom}
+                          disabled={validandoCupom || !codigoCupom.trim()}
+                          className="shrink-0 px-5 bg-white/10 hover:bg-white/20 rounded-xl font-black uppercase tracking-widest text-[10px] disabled:opacity-40"
+                        >
+                          {validandoCupom ? "..." : "Aplicar"}
+                        </button>
+                      </div>
+                      {erroCupom && (
+                        <p className="text-[10px] font-bold text-red-300 mt-2">
+                          {erroCupom}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-4 mb-8">
                   <div className="flex justify-between text-sm font-medium opacity-70">
                     <span>Subtotal</span>
                     <span>{formatMoney(totalPrice)}</span>
                   </div>
+                  {cupomAplicado && descontoCupom > 0 && (
+                    <div className="flex justify-between text-sm font-medium text-primary">
+                      <span>Desconto do cupom</span>
+                      <span>-{formatMoney(descontoCupom)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm font-medium opacity-70">
                     <span>Frete</span>
                     <span>
                       {freteSelecionado !== null
-                        ? formatMoney(valorFrete)
+                        ? cupomAplicado?.freteGratis
+                          ? "Grátis (cupom)"
+                          : formatMoney(valorFrete)
                         : "Selecione o endereço"}
                     </span>
                   </div>

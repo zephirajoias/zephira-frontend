@@ -138,6 +138,18 @@ simplesmente "tornar isso real" sem repensar o checkout inteiro (saber o
 método de pagamento antes de gerar a preferência). Vazio/0 desliga a
 linha, mesmo padrão de `VL_BRINDE_MINIMO`.
 
+## Cupom de desconto no carrinho (e-commerce)
+
+Campo "Cupom de desconto" no Resumo do carrinho (`carrinho/page.tsx`):
+chama `POST /loja/cupons/validar` (sem precisar estar logado) com
+`{ DS_CODIGO, VL_SUBTOTAL }` e mostra o desconto/frete grátis antes de
+pagar. Isso é só preview — o backend confere tudo de novo no checkout
+(`DS_CODIGO_PROMOCIONAL` no body de `/loja/pedidos/checkout`) e é lá que
+o uso do cupom é de fato contabilizado. Cadastro/edição de cupons já
+existia no admin inteiro (Promoções), só faltava esse campo no carrinho
+pro cliente usar (2026-11-13). Ver `back-end/CLAUDE.md`, seção "Cupom de
+desconto no carrinho".
+
 ## Banner do topo (carrossel): a caixa segue a foto, não o contrário
 
 `BannerCarousel.tsx` tinha altura fixa em `px` por breakpoint
