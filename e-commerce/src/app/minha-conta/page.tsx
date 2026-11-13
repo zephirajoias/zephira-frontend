@@ -21,8 +21,14 @@ interface Endereco {
 interface ItemPedido {
   CD_ITEM: number;
   NM_PRODUTO_SNAPSHOT: string;
+  CD_SKU_SNAPSHOT: string | null;
   QT_ITEM: number;
+  VL_UNITARIO: string;
   VL_TOTAL_ITEM: string;
+  VARIACOES_PRODUTO: {
+    DS_TAMANHO: string;
+    PRODUTOS: { NM_PRODUTO: string; DS_SLUG: string };
+  } | null;
 }
 
 interface Pedido {
@@ -31,6 +37,23 @@ interface Pedido {
   TP_STATUS: string;
   TS_CRIACAO: string;
   ITENS_PEDIDO: ItemPedido[];
+}
+
+interface PedidoDetalhe extends Pedido {
+  VL_SUBTOTAL: string;
+  VL_DESCONTO: string;
+  VL_FRETE: string;
+  CD_RASTREIO: string | null;
+  DS_SNAPSHOT_ENDERECO: {
+    NR_CEP: string;
+    NM_LOGRADOURO: string;
+    NR_NUMERO: string;
+    DS_COMPLEMENTO?: string;
+    NM_BAIRRO: string;
+    NM_CIDADE: string;
+    DS_UF: string;
+    DS_METODO_ENVIO?: string;
+  };
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -68,6 +91,14 @@ function MinhaContaContent() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [enderecos, setEnderecos] = useState<Endereco[]>([]);
   const [carregandoDados, setCarregandoDados] = useState(false);
+
+  const [pedidoSelecionado, setPedidoSelecionado] = useState<number | null>(
+    null,
+  );
+  const [detalhePedido, setDetalhePedido] = useState<PedidoDetalhe | null>(
+    null,
+  );
+  const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
 
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
@@ -107,6 +138,20 @@ function MinhaContaContent() {
         .finally(() => setCarregandoDados(false));
     }
   }, [activeTab, user]);
+
+  useEffect(() => {
+    if (!pedidoSelecionado) return;
+
+    setCarregandoDetalhe(true);
+    setDetalhePedido(null);
+    api
+      .get<PedidoDetalhe>(`/loja/pedidos/${pedidoSelecionado}`)
+      .then(setDetalhePedido)
+      .catch(() => setPedidoSelecionado(null))
+      .finally(() => setCarregandoDetalhe(false));
+  }, [pedidoSelecionado]);
+
+  const fecharDetalhe = () => setPedidoSelecionado(null);
 
   const formatMoney = (v: string | number) =>
     new Intl.NumberFormat("pt-BR", {
@@ -232,9 +277,11 @@ function MinhaContaContent() {
                 )}
 
                 {pedidos.map((pedido) => (
-                  <div
+                  <button
                     key={pedido.CD_PEDIDO}
-                    className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4"
+                    type="button"
+                    onClick={() => setPedidoSelecionado(pedido.CD_PEDIDO)}
+                    className="w-full text-left bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4 hover:border-primary/40 hover:shadow-md transition-all cursor-pointer"
                   >
                     <div className="flex items-center gap-6 w-full sm:w-auto">
                       <div className="size-12 bg-slate-50 rounded-xl flex items-center justify-center text-primary">
@@ -266,7 +313,7 @@ function MinhaContaContent() {
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -379,6 +426,155 @@ function MinhaContaContent() {
           </section>
         </div>
       </main>
+
+      {pedidoSelecionado && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4 py-8"
+          onClick={fecharDetalhe}
+        >
+          <div
+            className="bg-white rounded-[2rem] w-full max-w-lg max-h-[88vh] flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100">
+              <div>
+                <h2 className="text-lg font-black uppercase tracking-widest text-text-main">
+                  Pedido #{pedidoSelecionado}
+                </h2>
+                {detalhePedido && (
+                  <p className="text-xs font-bold text-text-muted uppercase tracking-tighter mt-0.5">
+                    {new Date(detalhePedido.TS_CRIACAO).toLocaleDateString(
+                      "pt-BR",
+                    )}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={fecharDetalhe}
+                className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-red-500 transition-colors"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-8 py-6 space-y-6">
+              {carregandoDetalhe || !detalhePedido ? (
+                <p className="text-slate-400 font-bold text-sm text-center py-10">
+                  Carregando...
+                </p>
+              ) : (
+                <>
+                  <div>
+                    <span
+                      className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${detalhePedido.TP_STATUS === "ENTREGUE" ? "bg-green-100 text-green-600" : "bg-primary/10 text-primary"}`}
+                    >
+                      {STATUS_LABEL[detalhePedido.TP_STATUS] ??
+                        detalhePedido.TP_STATUS}
+                    </span>
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">
+                      {detalhePedido.DS_SNAPSHOT_ENDERECO.DS_METODO_ENVIO ===
+                      "RETIRADA"
+                        ? "Retirada"
+                        : "Endereço de Entrega"}
+                    </p>
+                    {detalhePedido.DS_SNAPSHOT_ENDERECO.DS_METODO_ENVIO ===
+                    "RETIRADA" ? (
+                      <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 rounded-xl p-4">
+                        Retirada apenas em Salvador — a combinar com o
+                        vendedor.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-slate-600 leading-relaxed bg-slate-50 rounded-xl p-4">
+                        {detalhePedido.DS_SNAPSHOT_ENDERECO.NM_LOGRADOURO},{" "}
+                        {detalhePedido.DS_SNAPSHOT_ENDERECO.NR_NUMERO}
+                        {detalhePedido.DS_SNAPSHOT_ENDERECO.DS_COMPLEMENTO &&
+                          ` - ${detalhePedido.DS_SNAPSHOT_ENDERECO.DS_COMPLEMENTO}`}
+                        <br />
+                        {detalhePedido.DS_SNAPSHOT_ENDERECO.NM_BAIRRO},{" "}
+                        {detalhePedido.DS_SNAPSHOT_ENDERECO.NM_CIDADE}/
+                        {detalhePedido.DS_SNAPSHOT_ENDERECO.DS_UF}
+                        <br />
+                        CEP {detalhePedido.DS_SNAPSHOT_ENDERECO.NR_CEP}
+                      </p>
+                    )}
+                  </div>
+
+                  {detalhePedido.CD_RASTREIO && (
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">
+                        Rastreio
+                      </p>
+                      <p className="text-xs font-mono font-bold bg-slate-50 rounded-xl p-4">
+                        {detalhePedido.CD_RASTREIO}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-text-muted mb-2">
+                      Itens
+                    </p>
+                    <div className="border border-slate-100 rounded-xl overflow-hidden divide-y divide-slate-100">
+                      {detalhePedido.ITENS_PEDIDO.map((item) => (
+                        <div
+                          key={item.CD_ITEM}
+                          className="flex items-center justify-between gap-4 p-4"
+                        >
+                          <div>
+                            <p className="text-sm font-bold text-text-main">
+                              {item.NM_PRODUTO_SNAPSHOT}
+                            </p>
+                            {item.VARIACOES_PRODUTO?.DS_TAMANHO && (
+                              <p className="text-[10px] text-slate-400 font-bold uppercase">
+                                {item.VARIACOES_PRODUTO.DS_TAMANHO}
+                              </p>
+                            )}
+                            <p className="text-xs text-slate-400 font-medium">
+                              Qtd. {item.QT_ITEM} ·{" "}
+                              {formatMoney(item.VL_UNITARIO)} cada
+                            </p>
+                          </div>
+                          <p className="text-sm font-black text-text-main whitespace-nowrap">
+                            {formatMoney(item.VL_TOTAL_ITEM)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 rounded-xl p-4 space-y-1.5">
+                    <div className="flex justify-between text-xs font-bold text-slate-500">
+                      <span>Subtotal</span>
+                      <span>{formatMoney(detalhePedido.VL_SUBTOTAL)}</span>
+                    </div>
+                    {Number(detalhePedido.VL_DESCONTO) > 0 && (
+                      <div className="flex justify-between text-xs font-bold text-slate-500">
+                        <span>Desconto</span>
+                        <span>-{formatMoney(detalhePedido.VL_DESCONTO)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-xs font-bold text-slate-500">
+                      <span>Frete</span>
+                      <span>
+                        {Number(detalhePedido.VL_FRETE) === 0
+                          ? "Grátis"
+                          : formatMoney(detalhePedido.VL_FRETE)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm font-black text-text-main pt-1.5 border-t border-slate-200">
+                      <span>Total</span>
+                      <span>{formatMoney(detalhePedido.VL_TOTAL)}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
